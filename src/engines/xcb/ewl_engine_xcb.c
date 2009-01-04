@@ -1183,8 +1183,8 @@ ewl_ev_x_key_up(void *data __UNUSED__, int type __UNUSED__, void *e)
         ev = e;
 
         window = ewl_window_window_find((void *)ev->win);
-        if (!window)
-                DRETURN_INT(TRUE, DLEVEL_STABLE);
+//        if (!window)
+//                DRETURN_INT(TRUE, DLEVEL_STABLE);
 
         key_modifiers = ewl_ev_modifiers_get();
 
@@ -1200,12 +1200,14 @@ ewl_ev_x_key_up(void *data __UNUSED__, int type __UNUSED__, void *e)
                 key_modifiers &= ~EWL_KEY_MODIFIER_WIN;
         else if (strstr(ev->keyname, "Hyper_"))
                 key_modifiers &= ~EWL_KEY_MODIFIER_WIN;
-        else if (!ev->key_compose || iscntrl(*ev->key_compose))
-                ewl_embed_key_up_feed(EWL_EMBED(window), ev->keyname,
-                                                        key_modifiers);
-        else
-                ewl_embed_key_up_feed(EWL_EMBED(window), ev->key_compose,
-                                                        key_modifiers);
+		else if(window) {
+			if (!ev->key_compose || iscntrl(*ev->key_compose))
+				ewl_embed_key_up_feed(EWL_EMBED(window), ev->keyname,
+						key_modifiers);
+			else
+				ewl_embed_key_up_feed(EWL_EMBED(window), ev->key_compose,
+						key_modifiers);
+		}
 
         ewl_ev_modifiers_set(key_modifiers);
 
