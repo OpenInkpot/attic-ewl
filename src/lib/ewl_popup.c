@@ -66,6 +66,10 @@ ewl_popup_init(Ewl_Popup *p)
         ewl_container_resize_notify_set(EWL_CONTAINER(p),
                                         ewl_popup_cb_child_resize);
 
+		ewl_window_name_set(EWL_WINDOW(p), "dummy name");
+		ewl_window_class_set(EWL_WINDOW(p), "dummy class");
+		ewl_window_title_set(EWL_WINDOW(p), "dummy title");
+
         /*
          * add the callbacks
          */
@@ -441,6 +445,8 @@ ewl_popup_move(Ewl_Popup *p, int dx, int dy)
                         ewl_popup_move(EWL_POPUP(e), dx, dy);
         }
 
+		if(x < 0) x = 0;
+		if(y < 0) y = 0;
         ewl_window_move(EWL_WINDOW(p), x, y);
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
@@ -664,6 +670,8 @@ ewl_popup_position_check(Ewl_Popup *p)
                         y = desk_h - CURRENT_H(p);
         }
 
+		if(x < 0) x = 0;
+		if(y < 0) y = 0;
         ewl_window_move(EWL_WINDOW(p), x, y);
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
