@@ -1585,7 +1585,7 @@ ewl_ev_dnd_drop(void *data __UNUSED__, int type __UNUSED__, void *e)
                 x = ev->position.x - wx;
                 y = ev->position.y - wy;
 
-                type = ewl_embed_dnd_drop_feed(embed, x, y, internal);
+                type = ewl_embed_dnd_drop_feed(embed, x, y);
                 if (type)
                         ecore_x_selection_xdnd_request(ev->win, (char *)type);
         }

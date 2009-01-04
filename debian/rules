@@ -4,7 +4,7 @@ include /usr/share/cdbs/1/rules/debhelper.mk
 include /usr/share/cdbs/1/class/autotools.mk
 
 DEB_MAKE_CLEAN_TARGET := clean
-DEB_CONFIGURE_EXTRA_FLAGS := --disable-rpath --sysconfdir=/etc
+DEB_CONFIGURE_EXTRA_FLAGS := --host=$(DEB_HOST_GNU_TYPE) --enable-software-xcb --disable-rpath --sysconfdir=/etc
 
 clean::
 	./autogen.sh --prefix=/usr $(DEB_CONFIGURE_EXTRA_FLAGS)

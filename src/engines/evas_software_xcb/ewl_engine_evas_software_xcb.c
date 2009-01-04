@@ -1,8 +1,9 @@
 /* vim: set sw=8 ts=8 sts=8 expandtab: */
-#include "Ewl_Engine_Evas_Software_X11.h"
+#include "Ewl_Engine_Evas_Software_Xcb.h"
 #include "ewl_private.h"
 #include "ewl_debug.h"
 #include "ewl_macros.h"
+#include <xcb/xcb.h>
 
 static void ee_canvas_setup(Ewl_Window *win, int debug);
 static int ee_init(Ewl_Engine *engine);
@@ -115,7 +116,7 @@ ee_canvas_setup(Ewl_Window *win, int debug)
 
         evas = evas_new();
         evas_output_method_set(evas,
-                        evas_render_method_lookup("software_xcb"));
+                        evas_render_method_lookup("software_x11"));
 
         info = evas_engine_info_get(evas);
         if (!info)
@@ -130,11 +131,11 @@ ee_canvas_setup(Ewl_Window *win, int debug)
         sinfo->info.backend = 1;
         sinfo->info.connection = ecore_x_connection_get();
         sinfo->info.screen = ecore_x_default_screen_get();
-        sinfo->info.visual = visualtype_get(sinfo->info.conn,
+        sinfo->info.visual = visualtype_get(sinfo->info.connection,
                                 sinfo->info.screen);
-        sinfo->info.colormap = sinfo->info.screen->default_colormap;
+        sinfo->info.colormap = ((xcb_screen_t*)sinfo->info.screen)->default_colormap;
         sinfo->info.drawable = (Ecore_X_Window)win->window;
-        sinfo->info.depth = sinfo->info.screen->root_depth;
+        sinfo->info.depth = ((xcb_screen_t*)sinfo->info.screen)->root_depth;
         sinfo->info.rotation = 0;
         sinfo->info.debug = debug;
 

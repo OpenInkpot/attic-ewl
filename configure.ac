@@ -63,7 +63,7 @@ PKG_CHECK_MODULES([ECORE_X], [ecore-x >= 0.9.9], [have_ecore_x="yes"], [have_eco
 
 PKG_CHECK_MODULES([ECORE_XCB], [xcb >= 1.0 ecore-x >= 0.9.9], [have_ecore_xcb="yes"], [have_ecore_xcb="no"])
 # Disable xcb support for now
-have_ecore_xcb="no"
+#have_ecore_xcb="no"
 
 PKG_CHECK_MODULES([ECORE_WIN32], [ecore-win32 >= 0.9.9], [have_ecore_win32="yes"], [have_ecore_win32="no"])
 
@@ -118,7 +118,7 @@ AC_FUNC_ALLOCA
 AC_FUNC_CLOSEDIR_VOID
 AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
-AC_FUNC_REALLOC
+#AC_FUNC_REALLOC
 AC_FUNC_STAT
 AC_FUNC_STRCOLL
 AC_CHECK_FUNCS([dup2 memmove memset nl_langinfo setenv setlocale sqrt strcasecmp strchr strdup strncasecmp strrchr strstr])
@@ -230,7 +230,7 @@ case "$host_os" in
         ewl_evas_engine_default="evas_gl_glew"
         ;;
      *)
-        ewl_evas_engine_default="evas_software_x11"
+        ewl_evas_engine_default="evas_software_xcb"
         ;;
 esac
 AC_SUBST(ewl_evas_engine_default)

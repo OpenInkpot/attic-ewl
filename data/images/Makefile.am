@@ -25,4 +25,5 @@ all: $(EDJS)
 
 SUFFIXES = .edc .edj
 .edc.edj:
-	edje_cc -v -id $(srcdir) $< $@
+	cp $(top_srcdir)/debian/edj/$(@F) $(top_builddir)/data/images/$(@F)
+#edje_cc -v -id $(srcdir) $< $@

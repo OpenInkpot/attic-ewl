@@ -50,5 +50,6 @@ e17.edj: ${e17_DEPS}
 
 SUFFIXES = .edc .edj
 .edc.edj:
-	edje_cc -v -id $(top_srcdir)/data/themes/$(*F)/images -fd $(top_srcdir)/data/themes/$(*F) $(top_srcdir)/data/themes/$(*F)/$< $(top_builddir)/data/themes/$(*F)/$(@F)
+	cp $(top_srcdir)/debian/edj/$(@F) $(top_builddir)/data/themes/$(*F)/$(@F)
+#edje_cc -v -id $(top_srcdir)/data/themes/$(*F)/images -fd $(top_srcdir)/data/themes/$(*F) $(top_srcdir)/data/themes/$(*F)/$< $(top_builddir)/data/themes/$(*F)/$(@F)
 
