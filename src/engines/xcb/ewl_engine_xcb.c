@@ -82,7 +82,7 @@ static void ee_keyboard_ungrab(Ewl_Window *win);
 static int ee_pointer_grab(Ewl_Window *win);
 static void ee_pointer_ungrab(Ewl_Window *win);
 static void ee_window_selection_text_set(Ewl_Embed *emb, const char *txt);
-static void ee_window_geometry_set(Ewl_Window *win, int *width, int *height);
+static void ee_window_geometry_get(Ewl_Window *win, int *width, int *height);
 static void ee_dnd_aware_set(Ewl_Embed *embed);
 static void ee_desktop_size_get(Ewl_Embed *embed, int *w, int *h);
 static void ee_dnd_drag_types_set(Ewl_Embed *embed, const char **types, unsigned int num);
@@ -119,7 +119,7 @@ static void *window_funcs[EWL_ENGINE_WINDOW_MAX] =
                 ee_pointer_grab,
                 ee_pointer_ungrab,
                 ee_window_selection_text_set,
-                ee_window_geometry_set,
+                ee_window_geometry_get,
                 ee_dnd_aware_set,
                 ee_desktop_size_get,
                 ee_dnd_drag_types_set,
@@ -860,7 +860,7 @@ ee_window_selection_text_set(Ewl_Embed *emb, const char *txt)
 }
 
 static void
-ee_window_geometry_set(Ewl_Window *win, int *width, int *height)
+ee_window_geometry_get(Ewl_Window *win, int *width, int *height)
 {
         DENTER_FUNCTION(DLEVEL_STABLE);
 
