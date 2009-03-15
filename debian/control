@@ -2,11 +2,11 @@ Source: ewl
 Section: gui
 Priority: optional
 Maintainer: Alexander Kerner <lunohod@openinkpot.org>
-Build-Depends: debhelper (>= 6), cdbs, automake1.9, libtool, pkg-config, libevas-dev, libecore-dev, libedje-dev, libemotion0-dev, libedje-bin, libembryo-dev, libepsilon0-dev, libefreet0-dev
+Build-Depends: debhelper (>= 6), cdbs, automake1.9, libtool, pkg-config, libevas-dev, libecore-dev, libedje-dev, libemotion0-dev, libedje-bin, libembryo-dev, libepsilon0-dev, libefreet0-dev, libxcb1-dev
 Standards-Version: 3.7.3
 Homepage: http://www.enlightenment.org
 XCS-Cross-Host-Build-Depends: debhelper (>> 4.0.0), cdbs, cdbs-embedded, automake1.9 | automaken, libtool, pkg-config
-XCS-Cross-Build-Depends: libevas-dev, libecore-dev, libedje-dev, libefreet0-dev, libembryo-dev, libepsilon0-dev
+XCS-Cross-Build-Depends: libevas-dev, libecore-dev, libedje-dev, libefreet0-dev, libembryo-dev, libepsilon0-dev, libxcb1-dev
 XS-Vcs-Git: http://git.openinkpot.org/ewl.git
 XS-Vcs-Browser: http://git.openinkpot.org/ewl.git
 Format: 3.0 (native)
