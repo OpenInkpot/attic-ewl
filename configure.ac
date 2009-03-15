@@ -118,7 +118,7 @@ AC_FUNC_ALLOCA
 AC_FUNC_CLOSEDIR_VOID
 AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
-#AC_FUNC_REALLOC
+AC_FUNC_REALLOC
 AC_FUNC_STAT
 AC_FUNC_STRCOLL
 AC_CHECK_FUNCS([dup2 memmove memset nl_langinfo setenv setlocale sqrt strcasecmp strchr strdup strncasecmp strrchr strstr])

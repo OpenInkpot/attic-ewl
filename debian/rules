@@ -7,7 +7,10 @@ DEB_MAKE_CLEAN_TARGET := clean
 DEB_CONFIGURE_EXTRA_FLAGS := --host=$(DEB_HOST_GNU_TYPE) --enable-software-xcb --disable-rpath --sysconfdir=/etc
 
 clean::
-	./autogen.sh --prefix=/usr $(DEB_CONFIGURE_EXTRA_FLAGS)
+	ac_cv_func_memcmp_working=yes	\
+ac_cv_func_realloc_0_nonnull=yes	\
+ac_cv_func_strcoll_works=yes		\
+ac_cv_func_malloc_0_nonnull=yes	./autogen.sh --prefix=/usr $(DEB_CONFIGURE_EXTRA_FLAGS)
 
 debian/stamp-autotools-files:
 	touch debian/stamp-autotools-files
