@@ -1,3 +1,9 @@
+ewl (0.5.2.050-20090103-3) asimov; urgency=low
+
+  * efreet dependency added
+
+ -- Alexander Kerner <lunohod@openinkpot.org>  Sun, 15 Mar 2009 18:22:03 +0100
+
 ewl (0.5.2.050-20090103-2) asimov; urgency=low
 
   * fixed build dependencies
