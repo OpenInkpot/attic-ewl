@@ -1,3 +1,9 @@
+ewl (0.5.2.050-20090103-4) asimov; urgency=low
+
+  * Added more dependencies to the -dev package
+
+ -- Alexander Kerner <lunohod@openinkpot.org>  Tue, 17 Mar 2009 13:40:42 +0100
+
 ewl (0.5.2.050-20090103-3) asimov; urgency=low
 
   * efreet dependency added
