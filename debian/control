@@ -26,7 +26,7 @@ Package: libewl1-dev
 Architecture: any
 Section: libdevel
 Replaces: libewl-dev
-Depends: libewl1 (= ${Source-Version}), libc6-dev | libc-dev, libevas-dev, libecore-dev
+Depends: libewl1 (= ${Source-Version}), libc6-dev | libc-dev, libevas-dev, libecore-dev, libedje-dev, libefreet0-dev, libembryo-dev, libepsilon0-dev, libxcb1-dev
 Description: Development files for EWL
  EWL is a widget library based on the Enlightenment Foundation Libraries
  .
