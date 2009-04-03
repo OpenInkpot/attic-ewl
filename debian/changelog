@@ -1,3 +1,9 @@
+ewl (0.5.2.050-20090103-4+b1) asimov; urgency=low
+
+  * Rebuild with new toolchain.
+
+ -- Alexander Kerner <lunohod@openinkpot.org>  Fri, 03 Apr 2009 16:15:51 +0200
+
 ewl (0.5.2.050-20090103-4) asimov; urgency=low
 
   * Added more dependencies to the -dev package
