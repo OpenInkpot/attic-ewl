@@ -17,7 +17,7 @@ static Ewl_Text_Context *ewl_text_default_context = NULL;
 
 static const char ewl_text_trailing_bytes[32] =
 {
-        1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, 
+        1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1,
         1,1,1,1, 1,1,1,1, 2,2,2,2, 3,3,4,6
 };
 
@@ -197,7 +197,7 @@ ewl_text_length_maximum_set(Ewl_Text *t, unsigned int char_num)
 
 /**
  * @param t: The Ewl_Text to get the maximum number of characters
- * @return Returns the maximum length of characters, if the number is 
+ * @return Returns the maximum length of characters, if the number is
  *         unlimited it returns 0
  * @brief Retrieve if maximum number of characters
  */
@@ -314,7 +314,7 @@ ewl_text_minmax_size_update(Ewl_Text *t)
         DENTER_FUNCTION(DLEVEL_STABLE);
         DCHECK_PARAM_PTR(t);
         DCHECK_TYPE(t, EWL_TEXT_TYPE);
-        
+
         emb = ewl_embed_widget_find(EWL_WIDGET(t));
         if (!emb)
         {
@@ -342,19 +342,22 @@ ewl_text_minmax_size_update(Ewl_Text *t)
         }
 
         fn = evas_imaging_font_load(source, font, tx->size);
-        if (t->min.size_string)
-        {
-                evas_imaging_font_string_size_query(fn, t->min.size_string, 
-                                                                &width, NULL);
-                ewl_object_minimum_w_set(EWL_OBJECT(t), width);
-        }
-        if (t->max.size_string)
-        {
-                evas_imaging_font_string_size_query(fn, t->max.size_string, 
-                                                                &width, NULL);
-                ewl_object_maximum_w_set(EWL_OBJECT(t), width);
-        }
-        evas_imaging_font_free(fn);
+	if (fn)
+	{
+        	if (t->min.size_string)
+        	{
+                	evas_imaging_font_string_size_query(fn, t->min.size_string,
+                        	                            &width, NULL);
+                	ewl_object_minimum_w_set(EWL_OBJECT(t), width);
+        	}
+	        if (t->max.size_string)
+        	{
+                	evas_imaging_font_string_size_query(fn, t->max.size_string,
+                        	                            &width, NULL);
+                	ewl_object_maximum_w_set(EWL_OBJECT(t), width);
+        	}
+        	evas_imaging_font_free(fn);
+	}
         ewl_text_context_release(tx);
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
@@ -986,7 +989,7 @@ ewl_text_selectable_set(Ewl_Text *t, unsigned int selectable)
                 ewl_callback_append(EWL_WIDGET(t), EWL_CALLBACK_KEY_DOWN,
                                                 ewl_text_cb_key_down, NULL);
                 ewl_callback_append(EWL_WIDGET(t), EWL_CALLBACK_SELECTION_CLEAR,
-                                                ewl_text_cb_selection_clear, 
+                                                ewl_text_cb_selection_clear,
                                                 NULL);
         }
         else
@@ -1295,6 +1298,194 @@ ewl_text_cursor_position_line_down_get(Ewl_Text *t)
                                         0, &cur_char_idx, NULL);
 
         DRETURN_INT(cur_char_idx, DLEVEL_STABLE);
+}
+
+
+static void
+ewl_text_cursor_back(Evas_Textblock_Cursor *c)
+{
+        if(!evas_textblock_cursor_char_prev(c))
+        {
+                if(evas_textblock_cursor_node_prev(c))
+                {
+                        while(evas_textblock_cursor_node_format_get(c))
+                        {
+                                if(evas_textblock_cursor_node_format_is_visible_get(c))
+                                        break;
+                                if(!evas_textblock_cursor_node_prev(c))
+                                        break;
+                        }
+                }
+        }
+}
+
+static void
+ewl_text_cursor_next(Evas_Textblock_Cursor *c)
+{
+        if (!evas_textblock_cursor_char_next(c))
+        {
+                if (evas_textblock_cursor_node_next(c))
+                {
+                        while (evas_textblock_cursor_node_format_get(c))
+                        {
+                                if (evas_textblock_cursor_node_format_is_visible_get(c))
+                                        break;
+                                if (!evas_textblock_cursor_node_next(c))
+                                break;
+                        }
+                }
+        }
+        else
+        {
+                int len, pos;
+
+                len = evas_textblock_cursor_node_text_length_get(c);
+                pos = evas_textblock_cursor_pos_get(c);
+                if (pos == len)
+                        evas_textblock_cursor_node_next(c);
+        }
+}
+
+/**
+ * @param ch: character to test
+ * @return Returns 1 if the @ch is a word break character
+ * @brief Test if a character is a word break character
+ */
+static int
+ewl_text_word_break(char ch)
+{
+        return ch == ' ' || ch == '\t'
+               || ch == '(' || ch == ')'
+               || ch == '[' || ch == ']'
+               || ch == ',' || ch == '.'
+               || ch == ':' || ch == ';'
+               || ch == '\n'
+              ;
+}
+
+
+unsigned int
+ewl_text_cursor_position_line_start_get(Ewl_Text *t)
+{
+        Evas_Textblock_Cursor *cursor;
+        unsigned int char_idx, byte_idx;
+        char const *format;
+
+        DENTER_FUNCTION(DLEVEL_STABLE);
+        DCHECK_PARAM_PTR_RET(t, 0);
+        DCHECK_TYPE_RET(t, EWL_TEXT_TYPE, 0);
+
+        char_idx = ewl_text_cursor_position_get(t);
+        byte_idx = ewl_text_char_to_drawn_byte(t, char_idx);
+
+        cursor = ewl_text_textblock_cursor_position(t, byte_idx);
+
+        format = evas_textblock_cursor_node_format_get(cursor);
+        if (format)
+        {
+                if (!strcmp(format, "-"))
+                        ewl_text_cursor_back(cursor);
+        }
+
+        evas_textblock_cursor_line_first(cursor);
+
+        byte_idx = ewl_text_textblock_cursor_to_index(cursor);
+        char_idx = ewl_text_drawn_byte_to_char(t, byte_idx);
+
+        evas_textblock_cursor_free(cursor);
+
+        DRETURN_INT(char_idx, DLEVEL_STABLE);
+}
+
+unsigned int
+ewl_text_cursor_position_line_end_get(Ewl_Text *t)
+{
+        Evas_Textblock_Cursor *cursor;
+        unsigned int char_idx, byte_idx;
+
+        DENTER_FUNCTION(DLEVEL_STABLE);
+        DCHECK_PARAM_PTR_RET(t, 0);
+        DCHECK_TYPE_RET(t, EWL_TEXT_TYPE, 0);
+
+        char_idx = ewl_text_cursor_position_get(t);
+        byte_idx = ewl_text_char_to_drawn_byte(t, char_idx);
+
+        cursor = ewl_text_textblock_cursor_position(t, byte_idx);
+
+        evas_textblock_cursor_line_last(cursor);
+        if (!evas_textblock_cursor_node_format_get(cursor))
+            ewl_text_cursor_next(cursor);
+
+        byte_idx = ewl_text_textblock_cursor_to_index(cursor);
+        char_idx = ewl_text_drawn_byte_to_char(t, byte_idx);
+
+        evas_textblock_cursor_free(cursor);
+
+        DRETURN_INT(char_idx, DLEVEL_STABLE);
+}
+
+
+/**
+ * @param t: The Ewl_Text to get the cursor position of the beginning of previous word
+ * @return Returns the cursor position if we moved to the beginning of the previous word
+ * @brief Get the index if we were to move the cursor to the beginning of the previous word
+ */
+unsigned int
+ewl_text_cursor_position_word_previous_get(Ewl_Text *t)
+{
+        const char   *ptr;
+        unsigned int char_idx, byte_idx;
+
+        DENTER_FUNCTION(DLEVEL_STABLE);
+        DCHECK_PARAM_PTR_RET(t, 0);
+        DCHECK_TYPE_RET(t, EWL_TEXT_TYPE, 0);
+
+        char_idx = ewl_text_cursor_position_get(t);
+        ewl_text_fmt_char_to_byte(t->formatting.nodes,
+                                  char_idx, 0, &byte_idx, NULL);
+        ptr = t->text + byte_idx - 1;
+
+        while (ptr >= t->text && ewl_text_word_break(*ptr))
+                --ptr;
+        while (ptr >= t->text && !ewl_text_word_break(*ptr))
+                --ptr;
+
+        byte_idx = ptr - t->text + 1;
+        ewl_text_fmt_byte_to_char(t->formatting.nodes, byte_idx, 0, &char_idx, NULL);
+
+        DRETURN_INT(char_idx, DLEVEL_STABLE);
+}
+
+/**
+ * @param t: The Ewl_Text to get the cursor position of the beginning of the next word
+ * @return Returns the cursor position if we moved to the beginning of the next word
+ * @brief Get the index if we were to move the cursor to the beginning of the next word
+ */
+unsigned int
+ewl_text_cursor_position_word_next_get(Ewl_Text *t)
+{
+        const char *ptr;
+        unsigned int char_idx, byte_idx;
+
+        DENTER_FUNCTION(DLEVEL_STABLE);
+        DCHECK_PARAM_PTR_RET(t, 0);
+        DCHECK_TYPE_RET(t, EWL_TEXT_TYPE, 0);
+
+        char_idx = ewl_text_cursor_position_get(t);
+        ewl_text_fmt_char_to_byte(t->formatting.nodes,
+                                  char_idx, 0, &byte_idx, NULL);
+
+        ptr = t->text + byte_idx;
+
+        while (*ptr && !ewl_text_word_break(*ptr))
+                ++ptr;
+        while (*ptr && ewl_text_word_break(*ptr))
+                ++ptr;
+
+        byte_idx = ptr - t->text;
+        ewl_text_fmt_byte_to_char(t->formatting.nodes, byte_idx, 0, &char_idx, NULL);
+
+        DRETURN_INT(char_idx, DLEVEL_STABLE);
 }
 
 /**
@@ -3030,7 +3221,7 @@ ewl_text_char_utf8_is(const char *c)
         /* check for ascii chars first */
         if (t[0] < 0x80) DRETURN_INT(TRUE, DLEVEL_STABLE);
 
-        /* the first byte will give use the length of the character, we 
+        /* the first byte will give use the length of the character, we
          * already checked if it is an ASCII, wrong lengths like 1 and 5
          * are catched by the switch.
          * So we only have to check if the following bytes are valid UTF-8
@@ -3039,19 +3230,19 @@ ewl_text_char_utf8_is(const char *c)
          * 0b10xxxxxx. Anding this with 0b11000000 (0xc0) must result in
          * 0b10000000 (0x80) else it is not a legal UTF-8 trailing byte
          * and thus not a valid utf8 character.
-         */ 
+         */
         switch (EWL_TEXT_CHAR_BYTE_LEN(t))
         {
-                case 4: 
-                        if ((*(++t) & 0xc0) != 0x80) 
+                case 4:
+                        if ((*(++t) & 0xc0) != 0x80)
                                 DRETURN_INT(FALSE, DLEVEL_STABLE);
                         /* fall through */
-                case 3: 
-                        if ((*(++t) & 0xc0) != 0x80) 
+                case 3:
+                        if ((*(++t) & 0xc0) != 0x80)
                                 DRETURN_INT(FALSE, DLEVEL_STABLE);
                         /* fall through */
-                case 2: 
-                        if ((*(++t) & 0xc0) != 0x80) 
+                case 2:
+                        if ((*(++t) & 0xc0) != 0x80)
                                 DRETURN_INT(FALSE, DLEVEL_STABLE);
 
                         DRETURN_INT(TRUE, DLEVEL_STABLE);
@@ -3183,7 +3374,7 @@ ewl_text_cb_format(Ewl_Text_Fmt_Node *node, Ewl_Text *t, unsigned int byte_idx)
                 if (strlen(ptr) < node->byte_len)
                         DWARNING("Byte length of node %u overruns actual"
                                  " text %d", node->byte_len, (int)strlen(ptr));
-                                
+
                 *(ptr + node->byte_len) = '\0';
 
                 ewl_text_plaintext_parse(t->textblock, ptr);
@@ -3353,6 +3544,7 @@ ewl_text_textblock_cursor_to_index(Evas_Textblock_Cursor *cursor)
          * then need to add the length of all the nodes before it plus any
          * formatting nodes that are \n or \t */
         char_idx = evas_textblock_cursor_pos_get(cursor);
+
         while (evas_textblock_cursor_node_prev(cursor))
         {
                 const char *txt;
@@ -3361,6 +3553,7 @@ ewl_text_textblock_cursor_to_index(Evas_Textblock_Cursor *cursor)
                 if (!txt) char_idx += evas_textblock_cursor_node_text_length_get(cursor);
                 else if (!strcmp(txt, "\n")) char_idx ++;
                 else if (!strcmp(txt, "\t")) char_idx ++;
+
         }
 
         DRETURN_INT(char_idx, DLEVEL_STABLE);
@@ -3466,18 +3659,9 @@ ewl_text_cb_reveal(Ewl_Widget *w, void *ev __UNUSED__, void *data __UNUSED__)
                 ewl_text_context_release(ctx);
                 FREE(fmt2);
 
-                if (EWL_CONTAINER(w)->clip_box)
-                {
-                        evas_object_clip_set(t->textblock, 
-                                        EWL_CONTAINER(w)->clip_box);
-                        evas_object_show(EWL_CONTAINER(w)->clip_box);
-                }
-                else
-                        DWARNING("Text does not have a clip box!");
-
                 evas_object_pass_events_set(t->textblock, 1);
                 evas_object_smart_member_add(t->textblock, w->smart_object);
-                if (w->fx_clip_box) evas_object_raise(t->textblock);
+                evas_object_raise(t->textblock);
 
                 ewl_text_display(t);
                 evas_object_show(t->textblock);
@@ -3664,7 +3848,7 @@ ewl_text_cb_mouse_down(Ewl_Widget *w, void *ev, void *data __UNUSED__)
 
         if (!t->selection)
                 t->selection = ewl_text_selection_new(t);
-        
+
         sel = EWL_TEXT_TRIGGER(t->selection);
 
         char_idx = ewl_text_coord_index_map(EWL_TEXT(w), event->x, event->y);
@@ -3782,9 +3966,11 @@ ewl_text_cb_key_down(Ewl_Widget *w, void *ev, void *data __UNUSED__)
         if ((!event->keyname) || (!event->keyname[0]))
                 DRETURN(DLEVEL_STABLE);
 
-        if ((!(event->modifiers & EWL_KEY_MODIFIER_SHIFT)) ||
-                        (event->keyname[1] == '\0'))
+        if ( (!(event->modifiers & EWL_KEY_MODIFIER_SHIFT))
+             || (event->keyname[1] == '\0'))
+        {
                 DRETURN(DLEVEL_STABLE);
+        }
 
         if (!t->selection)
         {
@@ -3793,7 +3979,7 @@ ewl_text_cb_key_down(Ewl_Widget *w, void *ev, void *data __UNUSED__)
                 /* This can happen after key/mouse actions, so default to
                  * wherever the cursor is at this point, not 0
                  */
-                ewl_text_trigger_base_set(EWL_TEXT_TRIGGER(t->selection), 
+                ewl_text_trigger_base_set(EWL_TEXT_TRIGGER(t->selection),
                                 ewl_text_cursor_position_get(t));
 
                 /* Same problem as mouse_down... place it inside the
@@ -3806,21 +3992,48 @@ ewl_text_cb_key_down(Ewl_Widget *w, void *ev, void *data __UNUSED__)
 
         if (!strcmp(event->keyname, "Left"))
         {
-                pos = t->cursor_position;
-                if (pos > 0) pos--;
+                if (event->modifiers & EWL_KEY_MODIFIER_CTRL)
+                        pos = ewl_text_cursor_position_word_previous_get(t);
+                else
+                {
+                        pos = t->cursor_position;
+                        if (pos > 0) pos--;
+                }
         }
-        
+
         else if (!strcmp(event->keyname, "Right"))
         {
-                pos = t->cursor_position;
-                if (pos < t->length.chars) pos++;
+                if (event->modifiers & EWL_KEY_MODIFIER_CTRL)
+                        pos = ewl_text_cursor_position_word_next_get(t);
+                else
+                {
+                        pos = t->cursor_position;
+                        if (pos < t->length.chars) pos++;
+                }
         }
 
         else if (!strcmp(event->keyname, "Up"))
+        {
                 pos = ewl_text_cursor_position_line_up_get(t);
-
+        }
         else if (!strcmp(event->keyname, "Down"))
+        {
                 pos = ewl_text_cursor_position_line_down_get(t);
+        }
+        else if (!strcmp(event->keyname, "Home"))
+        {
+                if (event->modifiers & EWL_KEY_MODIFIER_CTRL)
+                        pos = 0;
+                else
+                        pos = ewl_text_cursor_position_line_start_get(t);
+        }
+        else if (!strcmp(event->keyname, "End"))
+        {
+                if (event->modifiers & EWL_KEY_MODIFIER_CTRL)
+                        pos = t->length.chars;
+                else
+                        pos = ewl_text_cursor_position_line_end_get(t);
+        }
         else
                 DRETURN(DLEVEL_STABLE);
 
@@ -3835,7 +4048,7 @@ ewl_text_cb_key_down(Ewl_Widget *w, void *ev, void *data __UNUSED__)
 }
 
 void
-ewl_text_cb_selection_clear(Ewl_Widget *w, void *ev __UNUSED__, 
+ewl_text_cb_selection_clear(Ewl_Widget *w, void *ev __UNUSED__,
                                 void *data __UNUSED__)
 {
         Ewl_Text *t;
@@ -3994,7 +4207,7 @@ ewl_text_cb_child_remove(Ewl_Container *c, Ewl_Widget *w, int idx __UNUSED__)
                         if (EWL_TEXT(c)->selection != w)
                                 DWARNING("We are removing a selection, that"
                                          "isn't our own. WTF is happening?");
-                                        
+
                         EWL_TEXT(c)->selection = NULL;
                 }
         }

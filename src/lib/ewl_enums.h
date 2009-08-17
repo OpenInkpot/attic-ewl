@@ -10,6 +10,30 @@
  */
 
 /**
+ * @enum Ewl_Directory_Type
+ * The system directory types used for querring with ewl_system_directory_get()
+ */
+enum Ewl_Directory_Type
+{
+        EWL_DIRECTORY_DATA,     /**< the directory where the system wide data,
+                                  is stored */
+        EWL_DIRECTORY_LIB,      /**< the directory where the plugins are stored
+                                  */
+        EWL_DIRECTORY_CONF,     /**< the directory where the configuration is
+                                  stored */
+        EWL_DIRECTORY_LOCALE,   /**< the directory where the translations are
+                                  stored */
+        EWL_DIRECTORY_THEME,    /**< the directory where the themes are
+                                  stored */
+        EWL_DIRECTORY_MAX
+};
+
+/**
+ * The Ewl_Directory_Type
+ */
+typedef enum Ewl_Directory_Type Ewl_Directory_Type;
+
+/**
  * @enum Ewl_Callback_Type
  * This defines the various types of callbacks that can be hooked up for each
  * widget.
@@ -141,6 +165,25 @@ enum Ewl_Object_Flags
                 EWL_FLAG_FILL_FILL | EWL_FLAG_FILL_SHRINK)
 
 /**
+ * @enum Ewl_Padding
+ */
+enum Ewl_Padding_Type
+{
+        EWL_PADDING_DEFAULT = 0,        /**< the default defined by the theme */
+        EWL_PADDING_SMALL,              /**< Small padding value */
+        EWL_PADDING_MEDIUM,             /**< Medium padding value */
+        EWL_PADDING_LARGE,              /**< Large padding value */
+        EWL_PADDING_HUGE,               /**< Huge padding value */
+        EWL_PADDING_CUSTOM              /**< user defined padding */
+};
+
+/**
+ * The Ewl_Padding_Type type
+ */
+typedef enum Ewl_Padding_Type Ewl_Padding_Type;
+
+
+/**
  * @enum Ewl_Widget_Flags
  * A variety of flags that affect visibility, scheduling and
  * properties of widgets.
@@ -154,9 +197,9 @@ enum Ewl_Widget_Flags
         EWL_FLAG_VISIBLE_SHOWN    = 0x1,        /**< Widget shown */
         EWL_FLAG_VISIBLE_REALIZED = 0x2,        /**< Widget realized */
         EWL_FLAG_VISIBLE_REVEALED = 0x4,        /**< Widget revealed */
-        EWL_FLAG_VISIBLE_NOCLIP   = 0x8,        /**< Widget has no clip */
-        EWL_FLAG_VISIBLE_NOTIFIED = 0x10,       /**< Container is notified */
-
+        EWL_FLAG_VISIBLE_NOTIFIED = 0x8,        /**< Container is notified */
+        EWL_FLAG_VISIBLE_SMARTOBJ = 0x10,       /**< Widget has more canvas
+                                                objects then a theme object */
         /*
          * Behavior modifying properties.
          */
@@ -181,17 +224,6 @@ enum Ewl_Widget_Flags
         EWL_FLAG_QUEUED_PROCESS_CONFIGURE   = 0x40000, /**< Configure in progress */
         EWL_FLAG_QUEUED_PROCESS_REVEAL      = 0x80000, /**< Reveal in progress */
         EWL_FLAG_QUEUED_PROCESS_DESTROY     = 0x100000,/**< Delete in progress */
-
-        /*
-         * The state enum specifies the current state of a widget, ie. has it
-         * been clicked, does it have the keyboard focus, etc.
-         */
-        EWL_FLAG_STATE_NORMAL   = 0,         /**< Widget state normal */
-        EWL_FLAG_STATE_MOUSE_IN = 0x200000,  /**< Mouse is in the widget */
-        EWL_FLAG_STATE_PRESSED  = 0x400000,  /**< Widget is pressed */
-        EWL_FLAG_STATE_FOCUSED  = 0x800000,  /**< Widget has focus */
-        EWL_FLAG_STATE_DISABLED = 0x1000000, /**< Widget is disabled */
-        EWL_FLAG_STATE_DND      = 0x2000000  /**< Widget is engaged in DND */
 };
 
 
@@ -201,7 +233,7 @@ enum Ewl_Widget_Flags
  */
 #define EWL_FLAGS_VISIBLE_MASK (EWL_FLAG_VISIBLE_HIDDEN | \
                 EWL_FLAG_VISIBLE_SHOWN | EWL_FLAG_VISIBLE_REALIZED | \
-                EWL_FLAG_VISIBLE_REVEALED | EWL_FLAG_VISIBLE_NOCLIP | \
+                EWL_FLAG_VISIBLE_REVEALED | EWL_FLAG_VISIBLE_SMARTOBJ | \
                 EWL_FLAG_VISIBLE_NOTIFIED)
 
 /**
@@ -323,6 +355,23 @@ enum Ewl_Tree_Node_Flags
 typedef enum Ewl_Tree_Node_Flags Ewl_Tree_Node_Flags;
 
 /**
+ * @enum Ewl_Size_Acquisition
+ */
+enum Ewl_Size_Acquisition
+{
+        EWL_SIZE_ACQUISITION_FIXED,     /**< Use the first row size for all */
+        /*EWL_SIZE_ACQUISITION_EXTRAPOLATE,*/    /**< Estimate the global size
+                                        before it is fetched */
+        EWL_SIZE_ACQUISITION_GROW       /**< Grow */
+};
+
+/**
+ * The Ewl_List2_Sizing type definition
+ */
+typedef enum Ewl_Size_Acquisition Ewl_Size_Acquisition;
+
+
+/**
  * @enum Ewl_Notebook_Flags
  * States effecting the notebook
  */
@@ -337,20 +386,20 @@ enum Ewl_Notebook_Flags
 typedef enum Ewl_Notebook_Flags Ewl_Notebook_Flags;
 
 /**
- * @enum Ewl_Scrollpane_Flags
- * The possible scrollpane settings
+ * @enum Ewl_Scrollport_Flags
+ * The possible scrollport settings
  */
-enum Ewl_Scrollpane_Flags
+enum Ewl_Scrollport_Flags
 {
-        EWL_SCROLLPANE_FLAG_NONE,                /**< No flags set */
-        EWL_SCROLLPANE_FLAG_AUTO_VISIBLE,        /**< Hide if possible */
-        EWL_SCROLLPANE_FLAG_ALWAYS_HIDDEN        /**< Always hide */
+        EWL_SCROLLPORT_FLAG_NONE,                /**< No flags set */
+        EWL_SCROLLPORT_FLAG_AUTO_VISIBLE,        /**< Hide if possible */
+        EWL_SCROLLPORT_FLAG_ALWAYS_HIDDEN        /**< Always hide */
 };
 
 /**
  * The Ewl_Scrollpane_Flags type
  */
-typedef enum Ewl_Scrollpane_Flags Ewl_Scrollpane_Flags;
+typedef enum Ewl_Scrollport_Flags Ewl_Scrollport_Flags;
 
 /**
  * @enum Ewl_Key_Modifiers
@@ -371,19 +420,41 @@ enum Ewl_Key_Modifiers
 typedef enum Ewl_Key_Modifiers Ewl_Key_Modifiers;
 
 /**
- * @enum Ewl_State_Type
- * The state type
+ * @enum Ewl_Durability
+ * The durability type
  */
-enum Ewl_State_Type
+enum Ewl_Durability
 {
-        EWL_STATE_TRANSIENT,
-        EWL_STATE_PERSISTENT
+        EWL_TRANSIENT,
+        EWL_PERSISTENT
 };
 
 /**
- * The Ewl_State_Type type
+ * The Ewl_Durability type
  */
-typedef enum Ewl_State_Type Ewl_State_Type;
+typedef enum Ewl_Durability Ewl_Durability;
+
+/**
+ * @enum Ewl_State
+ * The state type
+ */
+enum Ewl_State
+{
+        EWL_STATE_MOUSE_IN = 0x1,
+        EWL_STATE_MOUSE_DOWN = 0x2,
+        EWL_STATE_FOCUSED = 0x4,
+        EWL_STATE_DISABLED = 0x8,
+        EWL_STATE_HIGHLIGHTED = 0x10,
+        EWL_STATE_SELECTED = 0x20,
+        EWL_STATE_ON = 0x40,
+        EWL_STATE_ODD = 0x80,
+        EWL_STATE_DND = 0x100
+};
+
+/**
+ * The Ewl_State type
+ */
+typedef enum Ewl_State Ewl_State;
 
 /**
  * @enum Ewl_Stock_Type
@@ -413,6 +484,8 @@ enum Ewl_Stock_Type
         EWL_STOCK_EXECUTE,
         EWL_STOCK_FIND,
         EWL_STOCK_FIND_REPLACE,
+        EWL_STOCK_FLIP_HORIZONTAL,
+        EWL_STOCK_FLIP_VERTICAL,
         EWL_STOCK_FULLSCREEN,
         EWL_STOCK_HELP,
         EWL_STOCK_HOME,
@@ -442,6 +515,8 @@ enum Ewl_Stock_Type
         EWL_STOCK_REDO,
         EWL_STOCK_REFRESH,
         EWL_STOCK_REMOVE,
+        EWL_STOCK_ROTATE_LEFT,
+        EWL_STOCK_ROTATE_RIGHT,
         EWL_STOCK_SAVE,
         EWL_STOCK_SAVE_AS,
         EWL_STOCK_SELECT_ALL,
@@ -917,6 +992,37 @@ enum Ewl_Image_Type
  * The Ewl_Image_Type
  */
 typedef enum Ewl_Image_Type Ewl_Image_Type;
+
+/**
+ * @enum Ewl_Image_Data_Mode
+ * The mode to use the data of the image
+ */
+enum Ewl_Image_Data_Mode
+{
+        EWL_IMAGE_DATA_SIZE,    /**< only get the size an no data */
+        EWL_IMAGE_DATA_WRITE,   /**< get the image data to write */
+        EWL_IMAGE_DATA_READ     /**< get the image data to read */
+};
+
+/**
+ * The Ewl_Image_Data_Mode
+ */
+typedef enum Ewl_Image_Data_Mode Ewl_Image_Data_Mode;
+
+/**
+ * @enum Ewl_Colorspace
+ * the color format of the image data
+ */
+enum Ewl_Colorspace
+{
+        EWL_COLORSPACE_ARGB,    /**< rgb with alpha channel */
+        EWL_COLORSPACE_RGB      /**< rgb without alpha channel */
+};
+
+/**
+ * The Ewl_Image_Type
+ */
+typedef enum Ewl_Colorspace Ewl_Colorspace;
 
 /**
  * @enum Ewl_Thumbnail_Size

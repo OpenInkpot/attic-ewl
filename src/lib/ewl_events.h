@@ -150,6 +150,7 @@ struct Ewl_Event_Mouse_Up
 {
         Ewl_Event_Mouse base;   /**< Base mouse information */
         int button;             /**< The mouse button that was released */
+        int clicks;             /**< Number of consecutive clicks */
 };
 
 /**
@@ -368,8 +369,21 @@ typedef struct Ewl_Event_State_Change Ewl_Event_State_Change;
  */
 struct Ewl_Event_State_Change
 {
-        const char *state;
-        Ewl_State_Type flag;
+        union
+        {
+                struct
+                {
+                        const char *state;
+                        Ewl_Durability durability;
+                } custom;
+                struct
+                {
+                        Ewl_State state_add;
+                        Ewl_State state_remove;
+                        unsigned char inherited:1;
+                } normal;
+        } /* anonymous */;
+        unsigned char custom_state:1;
 };
 
 #include <ewl_model.h>

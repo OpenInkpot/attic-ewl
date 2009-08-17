@@ -1,3 +1,9 @@
+ewl (0.5.3.050-20090816-1) asimov; urgency=low
+
+  * SVN snapshot 20090816.
+
+ -- Mikhail Gusarov <dottedmag@dottedmag.net>  Sun, 16 Aug 2009 02:56:56 +0700
+
 ewl (0.5.2.050-20090103-4+b1) asimov; urgency=low
 
   * Rebuild with new toolchain.
@@ -32,12 +38,6 @@ ewl (0.5.2.050-20090103-1) unstable; urgency=low
 
 ewl (0.5.2.050-1) unstable; urgency=low
 
-  * a SVN release.
-  
- -- quaker <quaker66@gmail.com>  Sat, 27 Dec 2008 14:24:31 +0100
+  * Clean up changelog
 
-ewl (0.5.2.043-1) unstable; urgency=low
-
-  * a CVS release
-  
- -- Falko Schmidt <falko@alphagemini.org>  Thu, 1 May 2008 15:54:21 +0000
+ -- quaker <quaker66@gmail.com>  Tue, 21 Apr 2009 19:22:18 +0100

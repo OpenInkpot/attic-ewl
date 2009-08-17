@@ -129,6 +129,13 @@ main(int argc, char **argv)
         /* init the randomizer */
         srand(1);
 
+        /* init ecore */
+        if (!ecore_init())
+        {
+                printf("Unable to init Ecore.\n");
+                return 1;
+        }
+
         /* check for any flags before ewl_init to avoid opening the display */
         for (i = 0; i < argc; i++)
         {
@@ -204,7 +211,7 @@ main(int argc, char **argv)
                                 if (unit_test)
                                         ret = run_unit_tests(t);
                                 else
-                                        run_window_test(t, MAIN_WIDTH, MAIN_HEIGHT);
+                                        run_window_test(t, -1, -1);
 
                                 ran_test ++;
                                 if (!all_tests) break;
@@ -243,6 +250,8 @@ main(int argc, char **argv)
 
         if (tests) ecore_list_destroy(tests);
         if (tests_path_group) ecore_path_group_del(tests_path_group);
+
+        ecore_shutdown();
 
         return ret;
 }
@@ -418,6 +427,7 @@ run_unit_tests(Ewl_Test *test)
         /* no unit tests, nothign to do */
         if (!test->unit_tests) return 0;
 
+        printf("%s\n", test->name);
         for (i = 0; test->unit_tests[i].func; i++)
         {
                 int ret;
@@ -428,7 +438,7 @@ run_unit_tests(Ewl_Test *test)
                 ret = test->unit_tests[i].func(buf, sizeof(buf));
                 if (!ret || !hide_passed)
                 {
-                        printf("Running %s: ", test->unit_tests[i].name);
+                        printf("\t%s: ", test->unit_tests[i].name);
                         printf("%s %s\n", (ret ? "PASSED" : "FAILED"),
                                                         (ret ? "" : buf));
                 }
@@ -439,6 +449,7 @@ run_unit_tests(Ewl_Test *test)
                 if (test->unit_tests[i].quiet)
                         ewl_test_stderr_enable();
         }
+        printf("\n");
 
         return failures;
 }
@@ -506,8 +517,9 @@ run_test_boxed(Ewl_Test *t)
 static int
 ewl_test_setup_tests(void)
 {
-        Ecore_List *list = NULL;
+        Eina_List *list = NULL;
         char *name = NULL;
+        char buf[PATH_MAX];
 
         if (tests) return 1;
 
@@ -516,20 +528,22 @@ ewl_test_setup_tests(void)
 
         ecore_list_free_cb_set(tests, ECORE_FREE_CB(ewl_test_free));
 
+        snprintf(buf, sizeof(buf), "%s/tests",
+                        ewl_system_directory_get(EWL_DIRECTORY_LIB));
         tests_path_group = ecore_path_group_new();
-        ecore_path_group_add(tests_path_group, PACKAGE_LIB_DIR "/ewl/tests");
+        ecore_path_group_add(tests_path_group, buf);
         list = ecore_plugin_available_get(tests_path_group);
         /* no tests found ... */
         if (!list) return 0;
 
-        while ((name = ecore_list_first_goto(list)))
+	EINA_LIST_FREE(list, name)
         {
                 Ecore_Plugin *plugin;
                 void (*func_info)(Ewl_Test *test);
 
                 plugin = ecore_plugin_load(tests_path_group, name, NULL);
                 if (!plugin)
-                        continue;
+		        goto end;
 
 
                 /* the UI test info */
@@ -544,9 +558,9 @@ ewl_test_setup_tests(void)
                         ecore_list_append(tests, t);
                 }
 
-                ecore_list_remove_destroy(list);
+	end:
+		free(name);
         }
-        ecore_list_destroy(list);
 
         /* no tests found ... */
         if (ecore_list_count(tests) == 0) return 0;
@@ -792,8 +806,9 @@ fill_source_text(Ewl_Test *test)
         char *txt;
         char filename[PATH_MAX];
 
-        snprintf(filename, sizeof(filename), 
-                        PACKAGE_DATA_DIR "/ewl/examples/%s", test->filename);
+        snprintf(filename, sizeof(filename), "%s/examples/%s",
+                        ewl_system_directory_get(EWL_DIRECTORY_DATA),
+                        test->filename);
 
         txt = read_file(filename);
         text_parse(txt);
@@ -810,8 +825,8 @@ fill_tutorial_text(Ewl_Test *test)
         p = strrchr(file, '_');
         if ((p != NULL) && (*p != '\0')) *p = '\0';
         
-        snprintf(filename, sizeof(filename),
-                        PACKAGE_DATA_DIR "/ewl/tutorials/%s.dox", file);
+        snprintf(filename, sizeof(filename), "%s/tutorials/%s.dox",
+                        ewl_system_directory_get(EWL_DIRECTORY_DATA), file);
         free(file);
 
         txt = read_file(filename);
@@ -880,10 +895,9 @@ read_file(const char *filename)
 static void
 setup_unit_tests(Ewl_Test *test)
 {
-        Ewl_Widget *button, *tree, *progress;
+        Ewl_Widget *tree, *progress;
         int i;
 
-        button = ewl_widget_name_find("unit_test_button");
         tree = ewl_widget_name_find("unit_test_tree");
 
         current_test = test;
@@ -915,10 +929,8 @@ cb_run_unit_tests(Ewl_Widget *w __UNUSED__, void *ev __UNUSED__,
 {
         int i;
         Ewl_Test *test;
-        Ewl_Widget *tree;
         Ewl_Widget *progress;
 
-        tree = ewl_widget_name_find("unit_test_tree");
         test = current_test;
         if ((!test) || (!test->unit_tests)) return;
 
@@ -1202,7 +1214,8 @@ ewl_test_create_info_window(const char *title, const char *text)
         /* give it a size hint to calculate a good preferred size in the first 
          * place */
         ewl_object_w_request(EWL_OBJECT(o), 300);
-        ewl_object_padding_set(EWL_OBJECT(o), 10, 10, 20, 10);
+        ewl_object_padding_type_set(EWL_OBJECT(o), EWL_PADDING_LARGE);
+        ewl_object_padding_type_top_set(EWL_OBJECT(o), EWL_PADDING_HUGE);
         ewl_text_font_size_set(EWL_TEXT(o), 22);
         ewl_text_align_set(EWL_TEXT(o), EWL_FLAG_ALIGN_CENTER);
         ewl_text_styles_set(EWL_TEXT(o), EWL_TEXT_STYLE_FAR_SHADOW);

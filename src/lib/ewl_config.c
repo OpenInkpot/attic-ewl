@@ -37,9 +37,9 @@ Ewl_Config_Cache ewl_config_cache;
 
 extern Ecore_List *ewl_embed_list;
 
-static int ewl_config_file_read_lock(int fd, long size);
-static int ewl_config_file_write_lock(int fd, long size);
-static int ewl_config_file_unlock(int fd, long size);
+static int ewl_config_file_read_lock(int fd);
+static int ewl_config_file_write_lock(int fd);
+static int ewl_config_file_unlock(int fd);
 static int ewl_config_load(Ewl_Config *cfg);
 static int ewl_config_file_load(Ewl_Config *cfg, unsigned int is_system,
                                                         const char *file);
@@ -51,9 +51,9 @@ static void ewl_config_create_system_hash(Ewl_Config *cfg);
 static void ewl_config_create_user_hash(Ewl_Config *cfg);
 
 static Ecore_Hash *ewl_config_set_hash_get(Ewl_Config *cfg,
-                                        Ewl_State_Type state);
+                                        Ewl_Durability state);
 static const char *ewl_config_get(Ewl_Config *cfg, const char *key);
-static const char * ewl_config_env_get(Ewl_Config *cfg, const char *key);
+static const char *ewl_config_env_get(Ewl_Config *cfg, const char *key);
 static char *ewl_config_trim(char *v);
 static char *ewl_config_file_name_user_get(Ewl_Config *cfg);
 static char *ewl_config_file_name_system_get(Ewl_Config *cfg);
@@ -186,7 +186,7 @@ ewl_config_destroy(Ewl_Config *cfg)
  */
 void
 ewl_config_string_set(Ewl_Config *cfg, const char *k, const char *v,
-                                                Ewl_State_Type state)
+                                                Ewl_Durability state)
 {
         DENTER_FUNCTION(DLEVEL_STABLE);
         DCHECK_PARAM_PTR(k);
@@ -225,7 +225,7 @@ ewl_config_string_get(Ewl_Config *cfg, const char *k)
  */
 void
 ewl_config_int_set(Ewl_Config *cfg, const char *k, int v,
-                                        Ewl_State_Type state)
+                                        Ewl_Durability state)
 {
         char buf[128];
 
@@ -273,7 +273,7 @@ ewl_config_int_get(Ewl_Config *cfg, const char *k)
  */
 void
 ewl_config_float_set(Ewl_Config *cfg, const char *k, float v,
-                                        Ewl_State_Type state)
+                                        Ewl_Durability state)
 {
         char buf[128];
 
@@ -325,7 +325,7 @@ ewl_config_float_get(Ewl_Config *cfg, const char *k)
 void
 ewl_config_color_set(Ewl_Config *cfg, const char *k, int r, int g,
                                         int b, int a,
-                                        Ewl_State_Type state)
+                                        Ewl_Durability state)
 {
         char buf[128];
 
@@ -447,6 +447,212 @@ ewl_config_user_key_remove(Ewl_Config *cfg, const char *k)
         DLEAVE_FUNCTION(DLEVEL_STABLE);
 }
 
+/* helper function that removes all keys starting with the string k from hash */
+static void
+ewl_config_keys_remove_do(Ecore_Hash *hash, const char *k)
+{
+        Ecore_List *list;
+        const char *str;
+        size_t      len;
+
+        DENTER_FUNCTION(DLEVEL_STABLE);
+        DCHECK_PARAM_PTR(hash);
+        DCHECK_PARAM_PTR(k);
+
+        list = ecore_hash_keys(hash);
+
+        if (list && k[0] != '\0')
+        {
+                len = strlen(k);
+                while ((str = ecore_list_next(list)))
+                {
+                        if (!strncmp(k, str, len))
+                                ecore_hash_remove(hash, str);
+                }
+                ecore_list_destroy(list);
+        }
+
+        DLEAVE_FUNCTION(DLEVEL_STABLE);
+}
+
+/**
+ * @param cfg: The Ewl_Config to work with
+ * @param k: string that should be matched if the key is going to be removed.
+ *           Passing "" will remove all keys from the config
+ * @return Returns no value
+ * @brief Removes all keys/value pairs from all configs (system, user and instance),
+          which start with the string @k
+ */
+void
+ewl_config_keys_remove(Ewl_Config *cfg, const char *k)
+{
+        DENTER_FUNCTION(DLEVEL_STABLE);
+        DCHECK_PARAM_PTR(cfg);
+        DCHECK_PARAM_PTR(k);
+
+        ewl_config_system_keys_remove(cfg, k);
+        ewl_config_instance_keys_remove(cfg, k);
+        ewl_config_user_keys_remove(cfg, k);
+
+        DLEAVE_FUNCTION(DLEVEL_STABLE);
+}
+
+/**
+ * @param cfg: The Ewl_Config to work with
+ * @param k: string that should be matched if the key is going to be removed.
+ *           Passing "" will remove all keys from the config.
+ * @return Returns no value
+ * @brief Removes all keys/value pairs from the system config,
+          which start with the string @k
+ */
+void
+ewl_config_system_keys_remove(Ewl_Config *cfg, const char *k)
+{
+        DENTER_FUNCTION(DLEVEL_STABLE);
+        DCHECK_PARAM_PTR(cfg);
+        DCHECK_PARAM_PTR(k);
+
+        if (cfg->data.system)
+        {
+
+                if (k[0] == '\0')
+                        IF_FREE_HASH(cfg->data.system);
+                else
+                        ewl_config_keys_remove_do(cfg->data.system, k);
+        }
+
+        DLEAVE_FUNCTION(DLEVEL_STABLE);
+}
+
+/**
+ * @param cfg: The Ewl_Config to work with
+ * @param k: string that should be matched if the key is going to be removed.
+ *           Passing "" will remove all keys from the config.
+ * @return Returns no value
+ * @brief Removes all keys/value pairs from the instance config,
+          which start with the string @k
+ */
+void
+ewl_config_instance_keys_remove(Ewl_Config *cfg, const char *k)
+{
+        DENTER_FUNCTION(DLEVEL_STABLE);
+        DCHECK_PARAM_PTR(cfg);
+        DCHECK_PARAM_PTR(k);
+
+        if (cfg->data.instance)
+        {
+                if (k[0] == '\0')
+                        IF_FREE_HASH(cfg->data.instance);
+                else
+                        ewl_config_keys_remove_do(cfg->data.instance, k);
+        }
+
+        DLEAVE_FUNCTION(DLEVEL_STABLE);
+}
+
+/**
+ * @param cfg: The Ewl_Config to work with
+ * @param k: string that should be matched if the key is going to be removed.
+ *           Passing "" will remove all keys from the config.
+ * @return Returns no value
+ * @brief Removes all keys/value pairs from the user config,
+          which start with the string @k
+ */
+void
+ewl_config_user_keys_remove(Ewl_Config *cfg, const char *k)
+{
+        DENTER_FUNCTION(DLEVEL_STABLE);
+        DCHECK_PARAM_PTR(cfg);
+        DCHECK_PARAM_PTR(k);
+
+        if (cfg->data.user)
+        {
+                if (k[0] == '\0')
+                        IF_FREE_HASH(cfg->data.user);
+                else
+                        ewl_config_keys_remove_do(cfg->data.user, k);
+        }
+
+        DLEAVE_FUNCTION(DLEVEL_STABLE);
+}
+
+/*
+ * helder function used to add all keys starting with 'starts_with' to the 'list'
+ * the keys are added if they are unique
+ */
+static void
+ewl_config_key_list_add(Ecore_Hash *hash, Ecore_List *list, const char *starts_with)
+{
+        Ecore_List  *keys;
+        char        *str, *str_old;
+        size_t      len;
+        int         found;
+
+        DENTER_FUNCTION(DLEVEL_STABLE);
+        DCHECK_PARAM_PTR(hash);
+        DCHECK_PARAM_PTR(list);
+        DCHECK_PARAM_PTR(starts_with);
+
+        keys = ecore_hash_keys(hash);
+        len = strlen(starts_with);
+        if (!keys)
+                return;
+        while ((str = ecore_list_next(keys)))
+        {
+                if (!strncmp(starts_with, str, len))
+                {
+                        ecore_list_first_goto(list);
+
+                        found = 0;
+                        while ((str_old = ecore_list_next(list)))
+                        {
+                                if (!strcmp(str_old, str))
+                                {
+                                        found = 1;
+                                        break;
+                                }
+                        }
+
+                        if (!found)
+                                ecore_list_append(list, str);
+                }
+        }
+        DLEAVE_FUNCTION(DLEVEL_STABLE);
+}
+
+/**
+ * @param cfg: The Ewl_Config to work with
+ * @param starts_with: all returned keys will start with it
+ * @return A list with all the matched keys
+ * @brief Returns a list with all keys in the config starting with @starts_with
+ */
+Ecore_List *
+ewl_config_keys_get(Ewl_Config *cfg, const char *starts_with)
+{
+        Ecore_List  *result_list;
+
+        DENTER_FUNCTION(DLEVEL_STABLE);
+        DCHECK_PARAM_PTR_RET(cfg, NULL);
+        DCHECK_PARAM_PTR_RET(starts_with, NULL);
+
+        result_list = ecore_list_new();
+
+        if (cfg->data.user)
+                ewl_config_key_list_add(cfg->data.user, result_list, starts_with);
+
+        if (cfg->data.system)
+                ewl_config_key_list_add(cfg->data.system, result_list, starts_with);
+
+        if (cfg->data.instance)
+                ewl_config_key_list_add(cfg->data.instance, result_list, starts_with);
+
+        ecore_list_sort(result_list, ECORE_COMPARE_CB(strcoll), ECORE_SORT_MIN);
+        ecore_list_first_goto(result_list);
+
+        DRETURN_PTR(result_list, DLEVEL_STABLE);
+}
+
+
 /**
  * @param cfg: The Ewl_Config to work with
  * @return Returns TRUE if the user can write to the system conf file, FALSE
@@ -541,7 +747,7 @@ ewl_config_system_save(Ewl_Config *cfg)
 }
 
 static int
-ewl_config_file_read_lock(int fd, long size)
+ewl_config_file_read_lock(int fd)
 {
 #if defined(F_SETLKW)
         struct flock fl;
@@ -552,16 +758,11 @@ ewl_config_file_read_lock(int fd, long size)
         fl.l_len = 0;
 
         return (fcntl(fd, F_SETLKW, &fl) == 0);
-#else
-# if HAVE__LOCKING
-        return (_locking(fd, _LK_LOCK, size) == 0);
-# endif /* HAVE__LOCKING */
 #endif /* !defined(F_SETLKW) */
-        size = size;
 }
 
 static int
-ewl_config_file_write_lock(int fd, long size)
+ewl_config_file_write_lock(int fd)
 {
 #if defined(F_SETLKW)
         struct flock fl;
@@ -572,16 +773,11 @@ ewl_config_file_write_lock(int fd, long size)
         fl.l_len = 0;
 
         return (fcntl(fd, F_SETLKW, &fl) == 0);
-#else
-# if HAVE__LOCKING
-        return (_locking(fd, _LK_LOCK, size) == 0);
-# endif /* HAVE__LOCKING */
 #endif /* !defined(F_SETLKW) */
-        size = size;
 }
 
 static int
-ewl_config_file_unlock(int fd, long size)
+ewl_config_file_unlock(int fd)
 {
 #if defined(F_SETLKW)
         struct flock fl;
@@ -592,12 +788,7 @@ ewl_config_file_unlock(int fd, long size)
         fl.l_len = 0;
 
         return (fcntl(fd, F_SETLK, &fl) == 0);
-#else
-# if HAVE__LOCKING
-        return (_locking(fd, _LK_UNLCK, size) == 0);
-# endif /* HAVE__LOCKING */
 #endif /* !defined(F_SETLKW) */
-        size = size;
 }
 
 static int
@@ -605,7 +796,6 @@ ewl_config_save(Ewl_Config *cfg, Ecore_Hash *hash, const char *file)
 {
         Ecore_List *keys;
         char *key, data[512], *path;
-        long size;
         int fd;
 
         DENTER_FUNCTION(DLEVEL_STABLE);
@@ -634,9 +824,7 @@ ewl_config_save(Ewl_Config *cfg, Ecore_Hash *hash, const char *file)
                 DRETURN_INT(FALSE, DLEVEL_STABLE);
         }
 
-        size = ecore_file_size(file);
-
-        if (!ewl_config_file_write_lock(fd, size))
+        if (!ewl_config_file_write_lock(fd))
         {
                 DWARNING("Unable to lock %s for write.", file);
                 close(fd);
@@ -645,6 +833,7 @@ ewl_config_save(Ewl_Config *cfg, Ecore_Hash *hash, const char *file)
         }
 
         keys = ecore_hash_keys(hash);
+        ecore_list_sort(keys, ECORE_COMPARE_CB(strcoll), ECORE_SORT_MIN);
         ecore_list_first_goto(keys);
         while ((key = ecore_list_next(keys)))
         {
@@ -657,7 +846,7 @@ ewl_config_save(Ewl_Config *cfg, Ecore_Hash *hash, const char *file)
         }
 
         /* release the lock */
-        ewl_config_file_unlock(fd, size);
+        ewl_config_file_unlock(fd);
         close(fd);
 
         DRETURN_INT(TRUE, DLEVEL_STABLE);
@@ -721,7 +910,8 @@ ewl_config_file_name_system_get(Ewl_Config *cfg)
 
         fname = ewl_config_file_name_clean(cfg);
         snprintf(cfg_filename, sizeof(cfg_filename),
-                        "%s/ewl/%s%s.cfg", PACKAGE_SYSCONF_DIR,
+                        "%s/%s%s.cfg",
+                        ewl_system_directory_get(EWL_DIRECTORY_CONF),
                         (is_ewl ? "" : "apps/"), fname);
 
         FREE(fname);
@@ -861,14 +1051,14 @@ ewl_config_create_instance_hash(Ewl_Config *cfg)
 }
 
 static Ecore_Hash *
-ewl_config_set_hash_get(Ewl_Config *cfg, Ewl_State_Type state)
+ewl_config_set_hash_get(Ewl_Config *cfg, Ewl_Durability state)
 {
         Ecore_Hash *hash = NULL;
 
         DENTER_FUNCTION(DLEVEL_STABLE);
         DCHECK_PARAM_PTR_RET(cfg, NULL);
 
-        if (state == EWL_STATE_TRANSIENT)
+        if (state == EWL_TRANSIENT)
         {
                 ewl_config_create_instance_hash(cfg);
                 hash = cfg->data.instance;
@@ -980,7 +1170,7 @@ ewl_config_file_load(Ewl_Config *cfg, unsigned int is_system, const char *file)
 
         size = ecore_file_size(file);
 
-        if (!ewl_config_file_read_lock(fd, size))
+        if (!ewl_config_file_read_lock(fd))
         {
                 DWARNING("Unable to lock %s for read.", file);
 
@@ -998,7 +1188,7 @@ ewl_config_file_load(Ewl_Config *cfg, unsigned int is_system, const char *file)
         data[size] = '\0';
 
         /* release the lock as the file is in memory */
-        ewl_config_file_unlock(fd, size);
+        ewl_config_file_unlock(fd);
         close(fd);
 
         /* create the hash to store the values */
@@ -1103,5 +1293,3 @@ ewl_config_trim(char *v2)
 
         DRETURN_PTR(v2, DLEVEL_STABLE);
 }
-
-

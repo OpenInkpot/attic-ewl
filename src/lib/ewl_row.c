@@ -5,8 +5,6 @@
 #include "ewl_private.h"
 #include "ewl_debug.h"
 
-static void ewl_row_cb_state_changed(Ewl_Widget *w, void *ev, void *data);
-
 /**
  * @return Returns a newly allocated row on success, NULL on failure.
  * @brief Allocate and initialize a new row
@@ -58,8 +56,6 @@ ewl_row_init(Ewl_Row *row)
 
         ewl_callback_append(EWL_WIDGET(row), EWL_CALLBACK_CONFIGURE,
                                 ewl_row_cb_configure, NULL);
-        ewl_callback_append(EWL_WIDGET(row), EWL_CALLBACK_STATE_CHANGED,
-                                ewl_row_cb_state_changed, NULL);
 
         ewl_widget_focusable_set(EWL_WIDGET(row), FALSE);
 
@@ -308,15 +304,12 @@ ewl_row_cb_header_destroy(Ewl_Widget *w __UNUSED__,
 void
 ewl_row_cb_child_show(Ewl_Container *c, Ewl_Widget *w)
 {
-        Ewl_Row *row;
-
         DENTER_FUNCTION(DLEVEL_STABLE);
         DCHECK_PARAM_PTR(c);
         DCHECK_PARAM_PTR(w);
         DCHECK_TYPE(c, EWL_ROW_TYPE);
         DCHECK_TYPE(w, EWL_WIDGET_TYPE);
 
-        row = EWL_ROW(c);
         ewl_container_largest_prefer(c, EWL_ORIENTATION_VERTICAL);
         ewl_object_preferred_inner_w_set(EWL_OBJECT(c), PREFERRED_W(c) +
                         ewl_object_preferred_w_get(EWL_OBJECT(w)));
@@ -360,55 +353,15 @@ void
 ewl_row_cb_child_resize(Ewl_Container *c, Ewl_Widget *w __UNUSED__,
                                 int size, Ewl_Orientation o)
 {
-        Ewl_Row *row;
-
         DENTER_FUNCTION(DLEVEL_STABLE);
         DCHECK_PARAM_PTR(c);
         DCHECK_TYPE(c, EWL_ROW_TYPE);
 
-        row = EWL_ROW(c);
         if (o == EWL_ORIENTATION_VERTICAL)
                 ewl_container_largest_prefer(c, EWL_ORIENTATION_VERTICAL);
         else
                 ewl_object_preferred_inner_w_set(EWL_OBJECT(c),
                                 PREFERRED_W(c) + size);
-
-        DLEAVE_FUNCTION(DLEVEL_STABLE);
-}
-
-/**
- * @internal
- * @param w: The widget to work with
- * @ev: The Ewl_Event_State_Change struct
- * @data: UNUSED
- * @return Returns no value
- * @brief Sends the state on to the row's children
- */
-static void
-ewl_row_cb_state_changed(Ewl_Widget *w, void *ev, void *data __UNUSED__)
-{
-        Ewl_Widget *o;
-        Ewl_Event_State_Change *e;
-        const char *send_state;
-
-        DENTER_FUNCTION(DLEVEL_STABLE);
-        DCHECK_PARAM_PTR(w);
-        DCHECK_PARAM_PTR(ev);
-        DCHECK_TYPE(w, EWL_ROW_TYPE);
-
-        e = EWL_EVENT_STATE_CHANGE(ev);
-
-        /* Only want this for selected signals */
-        if (!strcmp(e->state, "selected"))
-                send_state = "parent,selected";
-        else if (!strcmp(e->state, "deselect"))
-                send_state = "parent,deselect";
-        else
-                DRETURN(DLEVEL_STABLE);
-
-        ewl_container_child_iterate_begin(EWL_CONTAINER(w));
-        while ((o = ewl_container_child_next(EWL_CONTAINER(w))))
-                ewl_widget_state_set(o, send_state, e->flag);
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
 }

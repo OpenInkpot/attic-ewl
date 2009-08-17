@@ -939,6 +939,10 @@ ewl_object_maximum_size_get(Ewl_Object *o, int *w, int *h)
  *
  * Stores the values of @a l, @a r, @a t and @a b into the object to
  * be used for distancing it's edges from other widgets when laying out.
+ * This values will be overwritten during realization if the padding type
+ * is not set to @c EWL_PADDING_CUSTOM. It's preferable to use
+ * ewl_padding_type_set(), because it will use theme defined values
+ * instead of hardcoded.
  */
 void
 ewl_object_padding_set(Ewl_Object *o, int l, int r, int t, int b)
@@ -949,10 +953,10 @@ ewl_object_padding_set(Ewl_Object *o, int l, int r, int t, int b)
         DENTER_FUNCTION(DLEVEL_STABLE);
         DCHECK_PARAM_PTR(o);
 
-        dx = (l - o->pad.l);
-        dy = (t - o->pad.t);
-        dh = dx + (r - o->pad.r);
-        dv = dy + (b - o->pad.t);
+        dx = l - PADDING_LEFT(o);
+        dy = t - PADDING_TOP(o);
+        dh = dx + r - PADDING_RIGHT(o);
+        dv = dy + b - PADDING_BOTTOM(o);
 
         o->pad.l = l;
         o->pad.r = r;
@@ -978,6 +982,95 @@ ewl_object_padding_set(Ewl_Object *o, int l, int r, int t, int b)
 }
 
 /**
+ * @param o: the object to change the padding type
+ * @param type: the new padding type
+ * @return Returns no value.
+ * @brief Set the padding type for all sides
+ *
+ */
+void
+ewl_object_padding_type_set(Ewl_Object *o, Ewl_Padding_Type type)
+{
+        DENTER_FUNCTION(DLEVEL_STABLE);
+        DCHECK_PARAM_PTR(o);
+
+        o->pad_type_l = type;
+        o->pad_type_r = type;
+        o->pad_type_t = type;
+        o->pad_type_b = type;
+
+        DLEAVE_FUNCTION(DLEVEL_STABLE);
+}
+
+/**
+ * @param o: the object to change the padding type for the left side
+ * @param type: the new padding type
+ * @return Returns no value.
+ * @brief Set the padding type for the left side
+ */
+void
+ewl_object_padding_type_left_set(Ewl_Object *o, Ewl_Padding_Type type)
+{
+        DENTER_FUNCTION(DLEVEL_STABLE);
+        DCHECK_PARAM_PTR(o);
+
+        o->pad_type_l = type;
+
+        DLEAVE_FUNCTION(DLEVEL_STABLE);
+}
+
+/**
+ * @param o: the object to change the padding type for the right side
+ * @param type: the new padding type
+ * @return Returns no value.
+ * @brief Set the padding type for the right side
+ */
+void
+ewl_object_padding_type_right_set(Ewl_Object *o, Ewl_Padding_Type type)
+{
+        DENTER_FUNCTION(DLEVEL_STABLE);
+        DCHECK_PARAM_PTR(o);
+
+        o->pad_type_r = type;
+
+        DLEAVE_FUNCTION(DLEVEL_STABLE);
+}
+
+/**
+ * @param o: the object to change the padding type for the top side
+ * @param type: the new padding type
+ * @return Returns no value.
+ * @brief Set the padding type for the top side
+ */
+void
+ewl_object_padding_type_top_set(Ewl_Object *o, Ewl_Padding_Type type)
+{
+        DENTER_FUNCTION(DLEVEL_STABLE);
+        DCHECK_PARAM_PTR(o);
+
+        o->pad_type_t = type;
+
+        DLEAVE_FUNCTION(DLEVEL_STABLE);
+}
+
+/**
+ * @param o: the object to change the padding type for the bottom side
+ * @param type: the new padding type
+ * @return Returns no value.
+ * @brief Set the padding type for the bottom side
+ */
+void
+ewl_object_padding_type_bottom_set(Ewl_Object *o, Ewl_Padding_Type type)
+{
+        DENTER_FUNCTION(DLEVEL_STABLE);
+        DCHECK_PARAM_PTR(o);
+
+        o->pad_type_b = type;
+
+        DLEAVE_FUNCTION(DLEVEL_STABLE);
+}
+
+/**
  * @param o: the object to retrieve padding
  * @param l: a pointer to an integer that receives padding of the left side
  * @param r: a pointer to an integer that receives padding of the right side
@@ -995,10 +1088,10 @@ ewl_object_padding_get(Ewl_Object *o, int *l, int *r, int *t, int *b)
         DENTER_FUNCTION(DLEVEL_STABLE);
         DCHECK_PARAM_PTR(o);
 
-        if (l) *l = o->pad.l;
-        if (r) *r = o->pad.r;
-        if (t) *t = o->pad.t;
-        if (b) *b = o->pad.b;
+        if (l) *l = PADDING_LEFT(o);
+        if (r) *r = PADDING_RIGHT(o);
+        if (t) *t = PADDING_TOP(o);
+        if (b) *b = PADDING_BOTTOM(o);
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
 }

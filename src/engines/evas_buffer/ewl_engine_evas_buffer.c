@@ -11,12 +11,14 @@ static void ee_canvas_render(Ewl_Embed *emb);
 static int ee_init(Ewl_Engine *engine);
 static void ee_shutdown(Ewl_Engine *engine);
 
-static void *canvas_funcs[EWL_ENGINE_CANVAS_MAX] =
+static void *canvas_funcs[] =
         {
                 ee_canvas_setup,
                 ee_canvas_output_set,
-                ee_canvas_render, NULL, NULL
+                ee_canvas_render, NULL, NULL, NULL
         };
+
+DSTATIC_ASSERT(EWL_ENGINE_CANVAS_MAX == ARRAY_COUNT(canvas_funcs));
 
 Ecore_DList *
 ewl_engine_dependancies(void)
@@ -131,7 +133,6 @@ ee_canvas_output_set(Ewl_Embed *emb, int x, int y, int width, int height)
         Evas *evas;
         Evas_Engine_Info *info = NULL;
         Evas_Engine_Info_Buffer *bufinfo;
-        Ewl_Object *o;
 
         DENTER_FUNCTION(DLEVEL_STABLE);
         DCHECK_PARAM_PTR(emb);
@@ -150,7 +151,6 @@ ee_canvas_output_set(Ewl_Embed *emb, int x, int y, int width, int height)
                 exit(-1);
         }
 
-        o = EWL_OBJECT(emb);
         bufinfo = (Evas_Engine_Info_Buffer *)info;
         bufinfo->info.dest_buffer_row_bytes = sizeof(int) * width;
         bufinfo->info.dest_buffer = realloc(bufinfo->info.dest_buffer,

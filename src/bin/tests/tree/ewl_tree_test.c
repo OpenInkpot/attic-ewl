@@ -36,7 +36,10 @@ struct Tree_Test_Data
 
 static int create_test(Ewl_Container *win);
 static void *tree_test_data_setup(void);
-static Ewl_Widget *tree_test_cb_widget_fetch(void *data, unsigned int row,
+static Ewl_Widget *tree_test_cb_widget_fetch(unsigned int column,
+                                                void *pr_data);
+static void tree_test_cb_widget_assign(Ewl_Widget *w, void *data,
+                                                unsigned int row,
                                                 unsigned int column,
                                                 void *pr_data);
 static void *tree_test_cb_header_data_fetch(void *data, unsigned int column);
@@ -103,7 +106,8 @@ create_test(Ewl_Container *box)
                                 tree_test_data_expansion_fetch);
 
         view = ewl_view_new();
-        ewl_view_widget_fetch_set(view, tree_test_cb_widget_fetch);
+        ewl_view_widget_constructor_set(view, tree_test_cb_widget_fetch);
+        ewl_view_widget_assign_set(view, tree_test_cb_widget_assign);
         ewl_view_header_fetch_set(view, tree_test_cb_header_fetch);
 
         tree = ewl_tree_new();
@@ -197,12 +201,12 @@ tree_test_data_setup(void)
         dt = calloc(TREE_DATA_ELEMENTS, sizeof(Tree_Test_Row_Data *));
 
         dt[0] = calloc(1, sizeof(Tree_Test_Row_Data));
-        dt[0]->image = strdup(PACKAGE_DATA_DIR"/ewl/images/e-logo.png");
+        dt[0]->image = ewl_test_image_copy_get("e-logo.png");
         dt[0]->text = strdup("The E logo");
         dt[0]->expandable = 0;
 
         dt[1] = calloc(1, sizeof(Tree_Test_Row_Data));
-        dt[1]->image = strdup(PACKAGE_DATA_DIR"/ewl/images/elicit.png");
+        dt[1]->image = ewl_test_image_copy_get("elicit.png");
         dt[1]->text = strdup("The Elicit image");
         dt[1]->expandable = 1;
 
@@ -211,11 +215,11 @@ tree_test_data_setup(void)
         dt[1]->subdata->row_count = 1;
         dt[1]->subdata->rows = calloc(dt[1]->subdata->count, sizeof(Tree_Test_Row_Data *));
         dt[1]->subdata->rows[0] = calloc(1, sizeof(Tree_Test_Row_Data));
-        dt[1]->subdata->rows[0]->image = strdup(PACKAGE_DATA_DIR"/ewl/images/e-logo.png");
+        dt[1]->subdata->rows[0]->image = ewl_test_image_copy_get("e-logo.png");
         dt[1]->subdata->rows[0]->text = strdup("The First Subrow");
 
         dt[2] = calloc(1, sizeof(Tree_Test_Row_Data));
-        dt[2]->image = strdup(PACKAGE_DATA_DIR"/ewl/images/entrance.png");
+        dt[2]->image = ewl_test_image_copy_get("entrance.png");
         dt[2]->text = strdup("The Entrance image");
         dt[2]->expandable = 1;
 
@@ -224,31 +228,31 @@ tree_test_data_setup(void)
         dt[2]->subdata->row_count = 6;
         dt[2]->subdata->rows = calloc(dt[2]->subdata->count, sizeof(Tree_Test_Row_Data *));
         dt[2]->subdata->rows[0] = calloc(1, sizeof(Tree_Test_Row_Data));
-        dt[2]->subdata->rows[0]->image = strdup(PACKAGE_DATA_DIR"/ewl/images/e-logo.png");
+        dt[2]->subdata->rows[0]->image = ewl_test_image_copy_get("e-logo.png");
         dt[2]->subdata->rows[0]->text = strdup("Squee. 1.");
         dt[2]->subdata->rows[1] = calloc(1, sizeof(Tree_Test_Row_Data));
-        dt[2]->subdata->rows[1]->image = strdup(PACKAGE_DATA_DIR"/ewl/images/e-logo.png");
+        dt[2]->subdata->rows[1]->image = ewl_test_image_copy_get("e-logo.png");
         dt[2]->subdata->rows[1]->text = strdup("Splat. 2.");
         dt[2]->subdata->rows[2] = calloc(1, sizeof(Tree_Test_Row_Data));
-        dt[2]->subdata->rows[2]->image = strdup(PACKAGE_DATA_DIR"/ewl/images/e-logo.png");
+        dt[2]->subdata->rows[2]->image = ewl_test_image_copy_get("e-logo.png");
         dt[2]->subdata->rows[2]->text = strdup("Squee. 3.");
         dt[2]->subdata->rows[3] = calloc(1, sizeof(Tree_Test_Row_Data));
-        dt[2]->subdata->rows[3]->image = strdup(PACKAGE_DATA_DIR"/ewl/images/e-logo.png");
+        dt[2]->subdata->rows[3]->image = ewl_test_image_copy_get("e-logo.png");
         dt[2]->subdata->rows[3]->text = strdup("Splat. 4.");
         dt[2]->subdata->rows[4] = calloc(1, sizeof(Tree_Test_Row_Data));
-        dt[2]->subdata->rows[4]->image = strdup(PACKAGE_DATA_DIR"/ewl/images/e-logo.png");
+        dt[2]->subdata->rows[4]->image = ewl_test_image_copy_get("e-logo.png");
         dt[2]->subdata->rows[4]->text = strdup("Squee. 5.");
         dt[2]->subdata->rows[5] = calloc(1, sizeof(Tree_Test_Row_Data));
-        dt[2]->subdata->rows[5]->image = strdup(PACKAGE_DATA_DIR"/ewl/images/e-logo.png");
+        dt[2]->subdata->rows[5]->image = ewl_test_image_copy_get("e-logo.png");
         dt[2]->subdata->rows[5]->text = strdup("Splat. 6.");
 
         dt[3] = calloc(1, sizeof(Tree_Test_Row_Data));
-        dt[3]->image = strdup(PACKAGE_DATA_DIR"/ewl/images/End.png");
+        dt[3]->image = ewl_test_image_copy_get("End.png");
         dt[3]->text = strdup("Zebra");
         dt[3]->expandable = 0;
 
         dt[4] = calloc(1, sizeof(Tree_Test_Row_Data));
-        dt[4]->image = strdup(PACKAGE_DATA_DIR"/ewl/images/banner-top.png");
+        dt[4]->image = ewl_test_image_copy_get("banner-top.png");
         dt[4]->text = strdup("Ant");
         dt[4]->expandable = 0;
 
@@ -260,19 +264,39 @@ tree_test_data_setup(void)
 }
 
 static Ewl_Widget *
-tree_test_cb_widget_fetch(void *data, unsigned int row __UNUSED__,
-                                        unsigned int column,
+tree_test_cb_widget_fetch(unsigned int column,
                                         void *pr_data __UNUSED__)
 {
         Ewl_Widget *w = NULL;
 
-        switch (column) {
+        switch (column)
+        {
                 case 0:
                         w = ewl_label_new();
-                        ewl_label_text_set(EWL_LABEL(w), data);
                         break;
                 case 1:
                         w = ewl_image_new();
+                        break;
+                case 2:
+                        w = ewl_button_new();
+                        break;
+        }
+
+        return w;
+}
+
+static void
+tree_test_cb_widget_assign(Ewl_Widget *w, void *data,
+                                        unsigned int row __UNUSED__,
+                                        unsigned int column,
+                                        void *pr_data __UNUSED__)
+{
+        switch (column)
+        {
+                case 0:
+                        ewl_label_text_set(EWL_LABEL(w), data);
+                        break;
+                case 1:
                         ewl_image_file_path_set(EWL_IMAGE(w), data);
                         break;
                 case 2:
@@ -280,15 +304,11 @@ tree_test_cb_widget_fetch(void *data, unsigned int row __UNUSED__,
                                 Tree_Test_Row_Data *d;
                                 d = data;
 
-                                w = ewl_button_new();
                                 ewl_button_label_set(EWL_BUTTON(w), d->text);
                                 ewl_button_image_set(EWL_BUTTON(w), d->image, NULL);
                         }
                         break;
         }
-        ewl_widget_show(w);
-
-        return w;
 }
 
 static void *
@@ -454,7 +474,7 @@ ewl_tree_cb_scroll_headers(Ewl_Widget *w, void *ev __UNUSED__, void *data)
 
         if (EWL_TREE_VIEW_SCROLLED_IS(view))
                 ewl_tree_view_scrolled_scroll_headers_set(EWL_TREE_VIEW(view),
-                        ewl_checkbutton_is_checked(EWL_CHECKBUTTON(w)));
+                        ewl_togglebutton_checked_get(EWL_TOGGLEBUTTON(w)));
 }
 
 static void
@@ -478,7 +498,7 @@ ewl_tree_cb_plain_view(Ewl_Widget *w, void *ev __UNUSED__, void *data)
         const Ewl_View *view;
 
         tree = data;
-        if (ewl_checkbutton_is_checked(EWL_CHECKBUTTON(w)))
+        if (ewl_togglebutton_checked_get(EWL_TOGGLEBUTTON(w)))
                 view = ewl_tree_view_plain_get();
         else
                 view = ewl_tree_view_scrolled_get();
@@ -585,7 +605,8 @@ tree_cb_select_mode_change(Ewl_Widget *w __UNUSED__, void *ev __UNUSED__,
 }
 
 static void
-tree_cb_ensure_visible(Ewl_Widget *w, void *ev, void *data)
+tree_cb_ensure_visible(Ewl_Widget *w __UNUSED__, void *ev __UNUSED__,
+                        void *data __UNUSED__)
 {
         Ewl_Widget *tree, *spinner;
 	int row;

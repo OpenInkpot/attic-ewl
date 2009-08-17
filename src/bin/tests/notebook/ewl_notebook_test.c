@@ -5,6 +5,7 @@
 #include "ewl_label.h"
 #include "ewl_notebook.h"
 #include "ewl_radiobutton.h"
+#include "ewl_entry.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -151,6 +152,21 @@ notebook_change_position(Ewl_Widget *w __UNUSED__, void *ev __UNUSED__,
 }
 
 static void
+notebook_rename_page(Ewl_Widget *w, void *ev __UNUSED__,
+                                                void *data __UNUSED__)
+{
+        Ewl_Widget *n, *vis;
+        const char *text;
+
+        n = ewl_widget_name_find("notebook");
+        vis = ewl_notebook_visible_page_get(EWL_NOTEBOOK(n));
+
+        text = ewl_text_text_get(EWL_TEXT(w));
+        ewl_notebook_page_tab_text_set(EWL_NOTEBOOK(n), vis, text);
+}
+
+
+static void
 notebook_append_page(Ewl_Widget *w __UNUSED__, void *ev __UNUSED__,
                                                 void *data __UNUSED__)
 {
@@ -249,7 +265,7 @@ create_main_page(void)
                                                         EWL_RADIOBUTTON(o2));
 
                 if (!strcmp(alignment[i], "Center"))
-                        ewl_checkbutton_checked_set(EWL_CHECKBUTTON(o), TRUE);
+                        ewl_togglebutton_checked_set(EWL_TOGGLEBUTTON(o), TRUE);
 
                 ewl_widget_show(o);
 
@@ -276,7 +292,7 @@ create_main_page(void)
                                                         EWL_RADIOBUTTON(o2));
 
                 if (!strcmp(alignment[i], "Top"))
-                        ewl_checkbutton_checked_set(EWL_CHECKBUTTON(o), TRUE);
+                        ewl_togglebutton_checked_set(EWL_TOGGLEBUTTON(o), TRUE);
 
                 ewl_widget_show(o);
 
@@ -284,7 +300,7 @@ create_main_page(void)
         }
 
         o = ewl_checkbutton_new();
-        ewl_checkbutton_checked_set(EWL_CHECKBUTTON(o), TRUE);
+        ewl_togglebutton_checked_set(EWL_TOGGLEBUTTON(o), TRUE);
         ewl_button_label_set(EWL_BUTTON(o), "Show tabbar");
         ewl_container_child_append(EWL_CONTAINER(body), o);
         ewl_object_alignment_set(EWL_OBJECT(o), EWL_FLAG_ALIGN_LEFT);
@@ -312,10 +328,11 @@ create_page(const char *name)
         ewl_box_spacing_set(EWL_BOX(box), 10);
         ewl_widget_show(box);
 
-        o = ewl_label_new();
-        ewl_label_text_set(EWL_LABEL(o), name);
-        ewl_object_alignment_set(EWL_OBJECT(o), EWL_FLAG_ALIGN_CENTER);
+        o = ewl_entry_new();
+        ewl_text_text_set(EWL_TEXT(o), name);
         ewl_container_child_append(EWL_CONTAINER(box), o);
+        ewl_callback_append(o, EWL_CALLBACK_VALUE_CHANGED,
+                                notebook_rename_page, box);
         ewl_widget_show(o);
 
         box2 = ewl_hbox_new();

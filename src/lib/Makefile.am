@@ -8,6 +8,7 @@ AM_CPPFLAGS = \
 -DPACKAGE_DATA_DIR=\"$(datadir)\" \
 -DPACKAGE_LIB_DIR=\"$(libdir)\" \
 -DPACKAGE_SYSCONF_DIR=\"$(sysconfdir)\" \
+-DPACKAGE_LOCALE_DIR=\"$(localedir)\" \
 $(GCOV_CFLAGS) \
 @EDJE_CFLAGS@ @ECORE_CFLAGS@ @EVAS_CFLAGS@ @EMOTION_CFLAGS@ @EPSILON_CFLAGS@ @EFREET_CFLAGS@ @EVIL_CFLAGS@
 
@@ -47,6 +48,7 @@ EWLHEADERS = \
 	ewl_filelist.h \
 	ewl_filelist_model.h \
 	ewl_filelist_view.h \
+	ewl_filelist_file.h \
 	ewl_filepicker.h \
 	ewl_filedialog.h \
 	ewl_freebox.h \
@@ -59,6 +61,7 @@ EWLHEADERS = \
 	ewl_io_manager.h \
 	ewl_image.h \
 	ewl_list.h \
+	ewl_list2.h \
 	ewl_macros.h \
 	ewl_media.h \
 	ewl_menu.h \
@@ -78,6 +81,8 @@ EWLHEADERS = \
 	ewl_range.h \
 	ewl_row.h \
 	ewl_scrollbar.h \
+	ewl_scrollport.h \
+	ewl_scrollport_kinetic.h \
 	ewl_scrollpane.h \
 	ewl_seeker.h \
 	ewl_separator.h \
@@ -87,17 +92,18 @@ EWLHEADERS = \
 	ewl_spinner.h \
 	ewl_statusbar.h \
 	ewl_stock.h \
+	ewl_table.h \
 	ewl_text.h \
 	ewl_text_context.h \
 	ewl_text_fmt.h \
 	ewl_text_trigger.h \
-	ewl_table.h \
+	ewl_theme.h \
+	ewl_togglebutton.h \
+	ewl_toolbar.h \
 	ewl_tree.h \
 	ewl_tree_view.h \
 	ewl_tree_view_plain.h \
 	ewl_tree_view_scrolled.h \
-	ewl_theme.h \
-	ewl_toolbar.h \
 	ewl_view.h \
 	ewl_widget.h \
 	ewl_window.h
@@ -132,6 +138,7 @@ EWLSOURCES= \
 	ewl_filelist.c \
 	ewl_filelist_model.c \
 	ewl_filelist_view.c \
+	ewl_filelist_file.c \
 	ewl_filepicker.c \
 	ewl_filedialog.c \
 	ewl_freebox.c \
@@ -144,6 +151,7 @@ EWLSOURCES= \
 	ewl_io_manager.c \
 	ewl_image.c \
 	ewl_list.c \
+	ewl_list2.c \
 	ewl_media.c \
 	ewl_menu.c \
 	ewl_menubar.c \
@@ -162,6 +170,8 @@ EWLSOURCES= \
 	ewl_range.c \
 	ewl_row.c \
 	ewl_scrollbar.c \
+	ewl_scrollport.c \
+	ewl_scrollport_kinetic.c \
 	ewl_scrollpane.c \
 	ewl_seeker.c \
 	ewl_separator.c \
@@ -177,15 +187,17 @@ EWLSOURCES= \
 	ewl_text_fmt.c \
 	ewl_text_trigger.c \
 	ewl_theme.c \
+	ewl_togglebutton.c \
+	ewl_toolbar.c \
 	ewl_tree.c \
 	ewl_tree_view.c \
 	ewl_tree_view_plain.c \
 	ewl_tree_view_scrolled.c \
-	ewl_toolbar.c \
 	ewl_view.c \
 	ewl_widget.c \
 	ewl_window.c \
 	ewl_private.h \
+	ewl_intl.h \
 	$(EWLHEADERS)
 
 libewl_la_SOURCES = \

@@ -9,11 +9,12 @@ button.edc \
 combo.edc \
 cursor.edc \
 dialog.edc \
-highlight.edc \
+image.edc \
 label.edc \
 menu.edc \
 notebook.edc \
 progress.edc \
+rectangle.edc \
 scroll.edc \
 separator.edc \
 shadow.edc \

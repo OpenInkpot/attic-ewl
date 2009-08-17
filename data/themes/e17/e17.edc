@@ -18,7 +18,8 @@ collections
 #include "groups/combo.edc"
 #include "groups/cursor.edc"
 #include "groups/dialog.edc"
-#include "groups/highlight.edc"
+#include "groups/rectangle.edc"
+#include "groups/image.edc"
 #include "groups/label.edc"
 #include "groups/menu.edc"
 #include "groups/notebook.edc"
@@ -36,16 +37,28 @@ collections
 
 data 
 {
+	/* padding */
+	item: "/small/pad" "2";
+	item: "/medium/pad" "5";
+	item: "/large/pad" "10";
+	item: "/huge/pad" "20";
+
 	/* button related groups */
 	item: "/button/group" "ewl/button";
-	item: "/radiobutton/group" "ewl/button/other";
-	item: "/checkbutton/group" "ewl/button/other";
+	item: "/togglebutton/group" "ewl/button";
+	item: "/radiobutton/group" "ewl/button/radiobutton";
+	item: "/checkbutton/group" "ewl/button/checkbutton";
+	item: "/checkbutton/body/label/group" "ewl/button/other/label";
+	item: "/radiobutton/body/label/group" "ewl/button/other/label";
 
 	item: "/radio/group" "ewl/button/radio/item";
 	item: "/check/group" "ewl/button/check/item";
 
 	/* A blank group to be used if you want to remove a theme */
 	item: "/blank/group" "ewl/blank";
+
+	/* rectangle */
+	item: "/rectangle/group" "ewl/rectangle";
 
 	/* border groups */
 	item: "/border/group" "ewl/border";
@@ -67,8 +80,8 @@ data
 	item: "/entry/cursor/group" "ewl/entry/cursor";
 	item: "/selection_area/group" "ewl/entry/selection";
 
-	/* highlight group */
-	item: "/highlight/group" "ewl/highlight";
+	/* image group */
+	item: "/image/group" "ewl/image";
 
 	/* label groups */
 	item: "/label/group" "ewl/label";
@@ -91,9 +104,17 @@ data
 	item: "/notebook/right/tabbar/group" "ewl/notebook/left";
 
 	item: "/notebook/top/tabbar/tab/group" "ewl/notebook/top/tab";
+	item: "/notebook/top/tabbar/first/tab/group" "ewl/notebook/top/tab";
+	item: "/notebook/top/tabbar/last/tab/group" "ewl/notebook/top/tab";
 	item: "/notebook/bottom/tabbar/tab/group" "ewl/notebook/bottom/tab";
+        item: "/notebook/bottom/tabbar/first/tab/group" "ewl/notebook/bottom/tab";
+        item: "/notebook/bottom/tabbar/last/tab/group" "ewl/notebook/bottom/tab";
 	item: "/notebook/left/tabbar/tab/group" "ewl/notebook/left/tab";
+        item: "/notebook/left/tabbar/first/tab/group" "ewl/notebook/left/tab";
+        item: "/notebook/left/tabbar/last/tab/group" "ewl/notebook/left/tab";
 	item: "/notebook/right/tabbar/tab/group" "ewl/notebook/right/tab";
+        item: "/notebook/right/tabbar/first/tab/group" "ewl/notebook/right/tab";
+        item: "/notebook/right/tabbar/last/tab/group" "ewl/notebook/right/tab";
 
 	/* paned groups */
 	item: "/grabber/vertical/group" "ewl/separator/vertical";
@@ -105,6 +126,7 @@ data
 
 	/* scroll groups */
 	item: "/scrollpane/group" "ewl/scrollpane/background";
+	item: "/scrollport/group" "ewl/scrollpane/background";
 
 	item: "/vscrollbar/decrement/group" "ewl/scrollbar/vertical/decrement";
 	item: "/vscrollbar/increment/group" "ewl/scrollbar/vertical/increment";
@@ -154,6 +176,7 @@ data
 
 	item: "/row/group" "ewl/row";
 	item: "/expansion/group" "ewl/tree/expansion";
+	item: "/nonexpandable/expansion/group" "ewl/tree/nonexpansion";
 
 	/* window related groups */
 	item: "/tooltip/group" "ewl/window";

@@ -185,22 +185,20 @@ ewl_entry_editable_set(Ewl_Entry *e, unsigned int editable)
                 ewl_callback_append(EWL_WIDGET(e), EWL_CALLBACK_KEY_DOWN,
                                                 ewl_entry_cb_key_down, NULL);
 
-                if (ewl_widget_state_has(EWL_WIDGET(e), EWL_FLAG_STATE_FOCUSED))
+                if (ewl_widget_state_has(EWL_WIDGET(e), EWL_STATE_FOCUSED))
                         ewl_widget_show(e->cursor);
 
-                ewl_widget_state_set(EWL_WIDGET(e), "enabled",
-                                        EWL_STATE_PERSISTENT);
+                ewl_widget_state_add(EWL_WIDGET(e), EWL_STATE_ON);
         }
         else
         {
                 ewl_callback_del(EWL_WIDGET(e), EWL_CALLBACK_KEY_DOWN,
                                                 ewl_entry_cb_key_down);
 
-                if (ewl_widget_state_has(EWL_WIDGET(e), EWL_FLAG_STATE_FOCUSED))
+                if (ewl_widget_state_has(EWL_WIDGET(e), EWL_STATE_FOCUSED))
                         ewl_widget_hide(e->cursor);
 
-                ewl_widget_state_set(EWL_WIDGET(e), "disabled",
-                                        EWL_STATE_PERSISTENT);
+                ewl_widget_state_remove(EWL_WIDGET(e), EWL_STATE_ON);
         }
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
@@ -381,8 +379,8 @@ ewl_entry_cb_key_down(Ewl_Widget *w, void *ev, void *data __UNUSED__)
         sel = EWL_TEXT_TRIGGER(EWL_TEXT(w)->selection);
 
         /* reset the cursor blink */
-        ewl_widget_state_set(EWL_WIDGET(e->cursor), "noblink",
-                                EWL_STATE_PERSISTENT);
+        ewl_widget_custom_state_set(EWL_WIDGET(e->cursor), "noblink",
+                                        EWL_TRANSIENT);
 
         if ((!event->keyname) || (!event->keyname[0]))
                 DRETURN(DLEVEL_STABLE);
@@ -398,13 +396,21 @@ ewl_entry_cb_key_down(Ewl_Widget *w, void *ev, void *data __UNUSED__)
         if (!strcmp(event->keyname, "Left"))
         {
                 if (sel) ewl_text_trigger_length_set(sel, 0);
-                ewl_entry_cursor_move_left(e);
+
+                if (event->modifiers & EWL_KEY_MODIFIER_CTRL)
+                        ewl_entry_cursor_move_word_previous(e);
+                else
+                        ewl_entry_cursor_move_left(e);
         }
 
         else if (!strcmp(event->keyname, "Right"))
         {
                 if (sel) ewl_text_trigger_length_set(sel, 0);
-                ewl_entry_cursor_move_right(e);
+
+                if (event->modifiers & EWL_KEY_MODIFIER_CTRL)
+                        ewl_entry_cursor_move_word_next(e);
+                else
+                        ewl_entry_cursor_move_right(e);
         }
 
         else if (!strcmp(event->keyname, "Up"))
@@ -428,6 +434,27 @@ ewl_entry_cb_key_down(Ewl_Widget *w, void *ev, void *data __UNUSED__)
         {
                 if (!ewl_entry_selection_clear(e))
                         ewl_entry_delete_right(e);
+        }
+        else if (!strcmp(event->keyname, "Home"))
+        {
+                if (sel)
+                        ewl_text_trigger_length_set(sel, 0);
+
+                if (event->modifiers & EWL_KEY_MODIFIER_CTRL)
+                        ewl_entry_cursor_move_start(e);
+                else
+                        ewl_entry_cursor_move_line_start(e);
+
+        }
+        else if (!strcmp(event->keyname, "End"))
+        {
+                if (sel)
+                    ewl_text_trigger_length_set(sel, 0);
+
+                if (event->modifiers & EWL_KEY_MODIFIER_CTRL)
+                        ewl_entry_cursor_move_end(e);
+                else
+                        ewl_entry_cursor_move_line_end(e);
         }
         else if ((!strcmp(event->keyname, "Return"))
                         || (!strcmp(event->keyname, "KP_Return"))
@@ -730,7 +757,7 @@ ewl_entry_cursor_move_right(Ewl_Entry *e)
 void
 ewl_entry_cursor_move_up(Ewl_Entry *e)
 {
-        unsigned int current_pos = 0;
+        unsigned int current_pos;
 
         DENTER_FUNCTION(DLEVEL_STABLE);
         DCHECK_PARAM_PTR(e);
@@ -751,7 +778,7 @@ ewl_entry_cursor_move_up(Ewl_Entry *e)
 void
 ewl_entry_cursor_move_down(Ewl_Entry *e)
 {
-        unsigned int current_pos = 0;
+        unsigned int current_pos;
 
         DENTER_FUNCTION(DLEVEL_STABLE);
         DCHECK_PARAM_PTR(e);
@@ -763,6 +790,132 @@ ewl_entry_cursor_move_down(Ewl_Entry *e)
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
 }
+
+/**
+ * @param e: The Ewl_Entry to work with
+ * @return Returns no value.
+ * @brief Moves the cursor to the beginning of the line
+ */
+void
+ewl_entry_cursor_move_line_start(Ewl_Entry *e)
+{
+        unsigned int current_pos;
+
+        DENTER_FUNCTION(DLEVEL_STABLE);
+        DCHECK_PARAM_PTR(e);
+        DCHECK_TYPE(e, EWL_ENTRY_TYPE);
+
+        current_pos = ewl_text_cursor_position_line_start_get(EWL_TEXT(e));
+
+        ewl_entry_cursor_position_set(EWL_ENTRY_CURSOR(e->cursor), current_pos);
+        ewl_widget_configure(EWL_WIDGET(e));
+
+        DLEAVE_FUNCTION(DLEVEL_STABLE);
+}
+
+/**
+ * @param e: The Ewl_Entry to work with
+ * @return Returns no value.
+ * @brief Moves the cursor to the end of the line
+ */
+void
+ewl_entry_cursor_move_line_end(Ewl_Entry *e)
+{
+        unsigned int current_pos;
+
+        DENTER_FUNCTION(DLEVEL_STABLE);
+        DCHECK_PARAM_PTR(e);
+        DCHECK_TYPE(e, EWL_ENTRY_TYPE);
+
+        current_pos = ewl_text_cursor_position_line_end_get(EWL_TEXT(e));
+
+        ewl_entry_cursor_position_set(EWL_ENTRY_CURSOR(e->cursor), current_pos);
+        ewl_widget_configure(EWL_WIDGET(e));
+
+        DLEAVE_FUNCTION(DLEVEL_STABLE);
+}
+
+/**
+ * @param e: The Ewl_Entry to work with
+ * @return Returns no value.
+ * @brief Moves the cursor to the first position
+ */
+void
+ewl_entry_cursor_move_start(Ewl_Entry *e)
+{
+        DENTER_FUNCTION(DLEVEL_STABLE);
+        DCHECK_PARAM_PTR(e);
+        DCHECK_TYPE(e, EWL_ENTRY_TYPE);
+
+        ewl_entry_cursor_position_set(EWL_ENTRY_CURSOR(e->cursor), 0);
+        ewl_widget_configure(EWL_WIDGET(e));
+
+        DLEAVE_FUNCTION(DLEVEL_STABLE);
+}
+
+/**
+ * @param e: The Ewl_Entry to work with
+ * @return Returns no value.
+ * @brief Moves the cursor to the last position
+ */
+void
+ewl_entry_cursor_move_end(Ewl_Entry *e)
+{
+        unsigned int current_pos;
+
+        DENTER_FUNCTION(DLEVEL_STABLE);
+        DCHECK_PARAM_PTR(e);
+        DCHECK_TYPE(e, EWL_ENTRY_TYPE);
+
+        current_pos = ewl_text_length_get(EWL_TEXT(e));
+        ewl_entry_cursor_position_set(EWL_ENTRY_CURSOR(e->cursor), current_pos);
+        ewl_widget_configure(EWL_WIDGET(e));
+
+        DLEAVE_FUNCTION(DLEVEL_STABLE);
+}
+
+/**
+ * @param e: The Ewl_Entry to work with
+ * @return Returns no value.
+ * @brief Moves the cursor to the beginning of the previous word
+ */
+void
+ewl_entry_cursor_move_word_previous(Ewl_Entry *e)
+{
+        unsigned int current_pos = 0;
+
+        DENTER_FUNCTION(DLEVEL_STABLE);
+        DCHECK_PARAM_PTR(e);
+        DCHECK_TYPE(e, EWL_ENTRY_TYPE);
+
+        current_pos = ewl_text_cursor_position_word_previous_get(EWL_TEXT(e));
+        ewl_entry_cursor_position_set(EWL_ENTRY_CURSOR(e->cursor), current_pos);
+        ewl_widget_configure(EWL_WIDGET(e));
+
+        DLEAVE_FUNCTION(DLEVEL_STABLE);
+}
+
+/**
+ * @param e: The Ewl_Entry to work with
+ * @return Returns no value.
+ * @brief Moves the cursor to the beginning of the next word
+ */
+void
+ewl_entry_cursor_move_word_next(Ewl_Entry *e)
+{
+        unsigned int current_pos = 0;
+
+        DENTER_FUNCTION(DLEVEL_STABLE);
+        DCHECK_PARAM_PTR(e);
+        DCHECK_TYPE(e, EWL_ENTRY_TYPE);
+
+        current_pos = ewl_text_cursor_position_word_next_get(EWL_TEXT(e));
+        ewl_entry_cursor_position_set(EWL_ENTRY_CURSOR(e->cursor), current_pos);
+        ewl_widget_configure(EWL_WIDGET(e));
+
+        DLEAVE_FUNCTION(DLEVEL_STABLE);
+}
+
 
 /**
  * @param e: The Ewl_Entry to work with

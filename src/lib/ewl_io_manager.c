@@ -6,7 +6,11 @@
 #include "ewl_macros.h"
 #include "ewl_debug.h"
 
-#include <Efreet_Mime.h>
+#ifdef BUILD_EFREET_SUPPORT
+# include <Efreet_Mime.h>
+#endif
+
+#define EWL_PLUGIN_DIR "plugins"
 
 static Ecore_Hash *ewl_io_manager_plugins = NULL;
 static Ecore_Hash *ewl_io_manager_ext_icon_map = NULL;
@@ -157,8 +161,11 @@ ewl_io_manager_uri_mime_type_get(const char *uri)
 
         DENTER_FUNCTION(DLEVEL_STABLE);
         DCHECK_PARAM_PTR_RET(uri, NULL);
-
+#if BUILD_EFREET_SUPPORT
         mime = efreet_mime_type_get(uri);
+#else
+        mime = "application/octet-stream";
+#endif
 
         DRETURN_PTR(mime, DLEVEL_STABLE);
 }
@@ -306,8 +313,10 @@ ewl_io_manager_plugin_get(const char *mime)
         if (!ewl_io_manager_path)
         {
                 ewl_io_manager_path = ecore_path_group_new();
-                ecore_path_group_add(ewl_io_manager_path,
-                                PACKAGE_LIB_DIR"/ewl/plugins/");
+                snprintf(name, sizeof(name), "%s/%s",
+                                ewl_system_directory_get(EWL_DIRECTORY_LIB),
+                                EWL_PLUGIN_DIR);
+                ecore_path_group_add(ewl_io_manager_path, name);
         }
 
         m = strdup(mime);

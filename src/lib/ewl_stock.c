@@ -5,6 +5,7 @@
 #include "ewl_macros.h"
 #include "ewl_private.h"
 #include "ewl_debug.h"
+#include "ewl_intl.h"
 
 /*
  * this array needs to have it's items in the same order as they
@@ -14,74 +15,77 @@ struct
 {
         const char * const label;
         const char * const image_key;
-        const char * const tooltip;
 } ewl_stock_items[] = {
-                {"About",          EWL_ICON_HELP_ABOUT,               "About"},
-                {"Add",            EWL_ICON_LIST_ADD,                 "Add"},
-                {"Apply",          EWL_ICON_DIALOG_APPLY,             "Apply"},
-                {/*Arrow*/"Bottom",EWL_ICON_GO_BOTTOM ,               "Bottom"},
-                {/*Arrow*/"Down",  EWL_ICON_GO_DOWN ,                 "Down"},
-                {/*Arrow*/"First", EWL_ICON_GO_FIRST ,                "First"},
-                {/*Arrow*/"Last",  EWL_ICON_GO_LAST ,                 "Last"},
-                {/*Arrow*/"Left",  EWL_ICON_GO_PREVIOUS ,             "Left"},
-                {/*Arrow*/"Right", EWL_ICON_GO_NEXT ,                 "Right"},
-                {/*Arrow*/"Top",   EWL_ICON_GO_TOP ,                  "Top"},
-                {/*Arrow*/"Up",    EWL_ICON_GO_UP ,                   "Up"},
-                {"Bold",           EWL_ICON_FORMAT_TEXT_BOLD,         "Bold"},
-                {"Cancel",         EWL_ICON_DIALOG_CANCEL,            "Cancel"},
-                {"Clear",          EWL_ICON_EDIT_DELETE,              "Clear"},
-                {"Close",          EWL_ICON_DIALOG_CLOSE,             "Close"},
-                {"Copy",           EWL_ICON_EDIT_COPY,                "Copy"},
-                {"Cut",            EWL_ICON_EDIT_CUT,                "Cut"},
-                {"Delete",         EWL_ICON_USER_TRASH,               "Delete"},
-                {"Edit",           EWL_ICON_ACCESSORIES_TEXT_EDITOR , "Edit"},
-                {"Execute",        EWL_ICON_SYSTEM_RUN ,              "Execute"},
-                {"Find",           EWL_ICON_EDIT_FIND ,               "Find"},
-                {"Find and replace", EWL_ICON_EDIT_FIND_REPLACE ,     "Find and replace"},
-                {"Fullscreen",     EWL_ICON_VIEW_FULLSCREEN ,         "Fullscreen"},
-                {"Help",           EWL_ICON_HELP_CONTENTS ,           "Help"},
-                {"Home",           EWL_ICON_GO_HOME ,                 "Home"},
-                {"Indent",         EWL_ICON_FORMAT_INDENT_MORE ,      "Indent"},
-                {"Italic",         EWL_ICON_FORMAT_TEXT_ITALIC ,      "Italic"},
-                {"Justify center", EWL_ICON_FORMAT_JUSTIFY_CENTER ,   "Justify center"},
-                {"Justify fill",   EWL_ICON_FORMAT_JUSTIFY_FILL ,     "Justify fill"},
-                {"Justify left",   EWL_ICON_FORMAT_JUSTIFY_LEFT ,     "Justify left"},
-                {"Justify right",  EWL_ICON_FORMAT_JUSTIFY_RIGHT ,    "Justify right"},
-                {"FF",             EWL_ICON_MEDIA_SEEK_FORWARD,       "Fast Forward"},
-                {"Next",           EWL_ICON_MEDIA_SKIP_FORWARD,       "Next"},
-                {"Pause",          EWL_ICON_MEDIA_PLAYBACK_PAUSE,     "Pause"},
-                {"Play",           EWL_ICON_MEDIA_PLAYBACK_START,     "Play"},
-                {"Previous",       EWL_ICON_MEDIA_SKIP_BACKWARD,      "Previous"},
-                {"Record",         EWL_ICON_MEDIA_RECORD,             "Record"},
-                {"Rewind",         EWL_ICON_MEDIA_SEEK_BACKWARD,      "Rewind"},
-                {"Stop",           EWL_ICON_MEDIA_PLAYBACK_STOP,      "Stop"},
-                {"New",            EWL_ICON_DOCUMENT_NEW,             "New"},
-                {"Ok",             EWL_ICON_DIALOG_OK,                "OK"},
-                {"Open",           EWL_ICON_DOCUMENT_OPEN,            "Open"},
-                {"Paste",          EWL_ICON_EDIT_PASTE,               "Paste"},
-                {"Preferences",    EWL_ICON_PREFERENCES_SYSTEM,       "Preferences"},
-                {"Print",          EWL_ICON_DOCUMENT_PRINT,           "Print"},
-                {"Print preview",  EWL_ICON_DOCUMENT_PRINT_PREVIEW,   "Print preview"},
-                {"Properties",     EWL_ICON_DOCUMENT_PROPERTIES,      "Properties"},
-                {"Quit",           EWL_ICON_SYSTEM_LOG_OUT,           "Quit"},
-                {"Redo",           EWL_ICON_EDIT_REDO,                "Redo"},
-                {"Refresh",        EWL_ICON_VIEW_REFRESH ,            "Refresh"},
-                {"Remove",         EWL_ICON_LIST_REMOVE,              "Remove"},
-                {"Save",           EWL_ICON_DOCUMENT_SAVE,            "Save"},
-                {"Save as",        EWL_ICON_DOCUMENT_SAVE_AS,         "Save as"},
-                {"Select all",     EWL_ICON_EDIT_SELECT_ALL,          "Select all"},
-                {"Sort ascending", EWL_ICON_VIEW_SORT_ASCENDING,      "Sort ascending"},
-                {"Sort descending",EWL_ICON_VIEW_SORT_DESCENDING,     "Sort descending"},
-                {"Spell check",    EWL_ICON_TOOLS_CHECK_SPELLING,     "Spell check"},
-                {"Strikethrough",  EWL_ICON_FORMAT_TEXT_STRIKETHROUGH,"Strikethrough"},
-                {"Underline",      EWL_ICON_FORMAT_TEXT_UNDERLINE,    "Underline"},
-                {"Undo",           EWL_ICON_EDIT_UNDO,                "Undo"},
-                {"Unindent",       EWL_ICON_FORMAT_INDENT_LESS ,      "Unindent"},
-                {"Zoom 1:1",       EWL_ICON_ZOOM_ORIGINAL ,           "Zoom 1:1"},
-                {"Zoom fit",       EWL_ICON_ZOOM_BEST_FIT ,           "Zoom fit"},
-                {"Zoom in",        EWL_ICON_ZOOM_IN ,                 "Zoom in"},
-                {"Zoom out",       EWL_ICON_ZOOM_OUT ,                "Zoom out"},
-        };
+        {N_("STOCK|About"),             EWL_ICON_HELP_ABOUT},
+        {N_("STOCK|Add"),               EWL_ICON_LIST_ADD},
+        {N_("STOCK|Apply"),             EWL_ICON_DIALOG_APPLY},
+        {/*Arrow*/N_("STOCK|Bottom"),   EWL_ICON_GO_BOTTOM},
+        {/*Arrow*/N_("STOCK|Down"),     EWL_ICON_GO_DOWN},
+        {/*Arrow*/N_("STOCK|First"),    EWL_ICON_GO_FIRST},
+        {/*Arrow*/N_("STOCK|Last"),     EWL_ICON_GO_LAST},
+        {/*Arrow*/N_("STOCK|Left"),     EWL_ICON_GO_PREVIOUS},
+        {/*Arrow*/N_("STOCK|Right"),    EWL_ICON_GO_NEXT},
+        {/*Arrow*/N_("STOCK|Top"),      EWL_ICON_GO_TOP},
+        {/*Arrow*/N_("STOCK|Up"),       EWL_ICON_GO_UP},
+        {N_("STOCK|Bold"),              EWL_ICON_FORMAT_TEXT_BOLD},
+        {N_("STOCK|Cancel"),            EWL_ICON_DIALOG_CANCEL},
+        {N_("STOCK|Clear"),             EWL_ICON_EDIT_DELETE},
+        {N_("STOCK|Close"),             EWL_ICON_DIALOG_CLOSE},
+        {N_("STOCK|Copy"),              EWL_ICON_EDIT_COPY},
+        {N_("STOCK|Cut"),               EWL_ICON_EDIT_CUT},
+        {N_("STOCK|Delete"),            EWL_ICON_USER_TRASH},
+        {N_("STOCK|Edit"),              EWL_ICON_ACCESSORIES_TEXT_EDITOR},
+        {N_("STOCK|Execute"),           EWL_ICON_SYSTEM_RUN},
+        {N_("STOCK|Find"),              EWL_ICON_EDIT_FIND},
+        {N_("STOCK|Find and replace"),  EWL_ICON_EDIT_FIND_REPLACE},
+        {N_("STOCK|Flip horizontal"),   EWL_ICON_OBJECT_FLIP_HORIZONTAL},
+        {N_("STOCK|Flip vertical"),     EWL_ICON_OBJECT_FLIP_VERTICAL},
+        {N_("STOCK|Fullscreen"),        EWL_ICON_VIEW_FULLSCREEN},
+        {N_("STOCK|Help"),              EWL_ICON_HELP_CONTENTS},
+        {N_("STOCK|Home"),              EWL_ICON_GO_HOME},
+        {N_("STOCK|Indent"),            EWL_ICON_FORMAT_INDENT_MORE},
+        {N_("STOCK|Italic"),            EWL_ICON_FORMAT_TEXT_ITALIC},
+        {N_("STOCK|Justify center"),    EWL_ICON_FORMAT_JUSTIFY_CENTER},
+        {N_("STOCK|Justify fill"),      EWL_ICON_FORMAT_JUSTIFY_FILL},
+        {N_("STOCK|Justify left"),      EWL_ICON_FORMAT_JUSTIFY_LEFT},
+        {N_("STOCK|Justify right"),     EWL_ICON_FORMAT_JUSTIFY_RIGHT},
+        {N_("STOCK|FF"),                EWL_ICON_MEDIA_SEEK_FORWARD},
+        {N_("STOCK|Next"),              EWL_ICON_MEDIA_SKIP_FORWARD},
+        {N_("STOCK|Pause"),             EWL_ICON_MEDIA_PLAYBACK_PAUSE},
+        {N_("STOCK|Play"),              EWL_ICON_MEDIA_PLAYBACK_START},
+        {N_("STOCK|Previous"),          EWL_ICON_MEDIA_SKIP_BACKWARD},
+        {N_("STOCK|Record"),            EWL_ICON_MEDIA_RECORD},
+        {N_("STOCK|Rewind"),            EWL_ICON_MEDIA_SEEK_BACKWARD},
+        {N_("STOCK|Stop"),              EWL_ICON_MEDIA_PLAYBACK_STOP},
+        {N_("STOCK|New"),               EWL_ICON_DOCUMENT_NEW},
+        {N_("STOCK|Ok"),                EWL_ICON_DIALOG_OK},
+        {N_("STOCK|Open"),              EWL_ICON_DOCUMENT_OPEN},
+        {N_("STOCK|Paste"),             EWL_ICON_EDIT_PASTE},
+        {N_("STOCK|Preferences"),       EWL_ICON_PREFERENCES_SYSTEM},
+        {N_("STOCK|Print"),             EWL_ICON_DOCUMENT_PRINT},
+        {N_("STOCK|Print preview"),     EWL_ICON_DOCUMENT_PRINT_PREVIEW},
+        {N_("STOCK|Properties"),        EWL_ICON_DOCUMENT_PROPERTIES},
+        {N_("STOCK|Quit"),              EWL_ICON_SYSTEM_LOG_OUT},
+        {N_("STOCK|Redo"),              EWL_ICON_EDIT_REDO},
+        {N_("STOCK|Refresh"),           EWL_ICON_VIEW_REFRESH},
+        {N_("STOCK|Remove"),            EWL_ICON_LIST_REMOVE},
+        {N_("STOCK|Rotate left"),       EWL_ICON_OBJECT_ROTATE_LEFT},
+        {N_("STOCK|Rotate right"),      EWL_ICON_OBJECT_ROTATE_RIGHT},
+        {N_("STOCK|Save"),              EWL_ICON_DOCUMENT_SAVE},
+        {N_("STOCK|Save as"),           EWL_ICON_DOCUMENT_SAVE_AS},
+        {N_("STOCK|Select all"),        EWL_ICON_EDIT_SELECT_ALL},
+        {N_("STOCK|Sort ascending"),    EWL_ICON_VIEW_SORT_ASCENDING},
+        {N_("STOCK|Sort descending"),   EWL_ICON_VIEW_SORT_DESCENDING},
+        {N_("STOCK|Spell check"),       EWL_ICON_TOOLS_CHECK_SPELLING},
+        {N_("STOCK|Strikethrough"),     EWL_ICON_FORMAT_TEXT_STRIKETHROUGH},
+        {N_("STOCK|Underline"),         EWL_ICON_FORMAT_TEXT_UNDERLINE},
+        {N_("STOCK|Undo"),              EWL_ICON_EDIT_UNDO},
+        {N_("STOCK|Unindent"),          EWL_ICON_FORMAT_INDENT_LESS},
+        {N_("STOCK|Zoom 1:1"),          EWL_ICON_ZOOM_ORIGINAL},
+        {N_("STOCK|Zoom fit"),          EWL_ICON_ZOOM_BEST_FIT},
+        {N_("STOCK|Zoom in"),           EWL_ICON_ZOOM_IN},
+        {N_("STOCK|Zoom out"),          EWL_ICON_ZOOM_OUT}
+};
 
 /**
  * @param s: the stock widget to initialize
@@ -154,7 +158,7 @@ ewl_stock_type_set(Ewl_Stock *s, Ewl_Stock_Type stock)
         /* set the label */
         if (s->stock_funcs->label_set)
                 s->stock_funcs->label_set(s,
-                         ewl_stock_items[s->stock_type].label);
+                         SD_(ewl_stock_items[s->stock_type].label));
 
         /* set the image */
         if (s->stock_funcs->image_set) {
@@ -168,11 +172,6 @@ ewl_stock_type_set(Ewl_Stock *s, Ewl_Stock_Type stock)
                 s->stock_funcs->image_set(s, data,
                                 ewl_stock_items[s->stock_type].image_key);
         }
-
-        /* set the tooltip */
-        if (s->stock_funcs->tooltip_set)
-                s->stock_funcs->tooltip_set(s,
-                        ewl_stock_items[s->stock_type].tooltip);
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
 }

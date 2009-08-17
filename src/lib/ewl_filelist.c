@@ -3,6 +3,7 @@
 #include "ewl_filelist.h"
 #include "ewl_filelist_model.h"
 #include "ewl_filelist_view.h"
+#include "ewl_filelist_file.h"
 #include "ewl_tree.h"
 #include "ewl_freebox_mvc.h"
 #include "ewl_mvc.h"
@@ -12,15 +13,6 @@
 #include "ewl_private.h"
 #include "ewl_debug.h"
 #include "ewl_scrollpane.h"
-
-#include <sys/types.h>
-#if HAVE_PWD_H
-# include <pwd.h>
-#endif /* HAVE_PWD_H */
-#if HAVE_GRP_H
-# include <grp.h>
-#endif /* HAVE_GRP_H */
-#include <time.h>
 
 static void ewl_filelist_setup(Ewl_Filelist *fl);
 static void ewl_filelist_view_setup(Ewl_Filelist *fl);
@@ -70,8 +62,8 @@ ewl_filelist_init(Ewl_Filelist *fl)
         ewl_widget_inherit(EWL_WIDGET(fl), EWL_FILELIST_TYPE);
         ewl_object_fill_policy_set(EWL_OBJECT(fl), EWL_FLAG_FILL_FILL);
 
-        fl->scroll_flags.h = EWL_SCROLLPANE_FLAG_AUTO_VISIBLE;
-        fl->scroll_flags.v = EWL_SCROLLPANE_FLAG_AUTO_VISIBLE;
+        fl->scroll_flags.h = EWL_SCROLLPORT_FLAG_AUTO_VISIBLE;
+        fl->scroll_flags.v = EWL_SCROLLPORT_FLAG_AUTO_VISIBLE;
 
         ewl_callback_prepend(EWL_WIDGET(fl), EWL_CALLBACK_DESTROY,
                                 ewl_filelist_cb_destroy, NULL);
@@ -99,8 +91,10 @@ ewl_filelist_setup(Ewl_Filelist *fl)
         DCHECK_TYPE(fl, EWL_FILELIST_TYPE);
 
         fl->view = ewl_view_new();
-        ewl_view_widget_fetch_set(fl->view,
-                                ewl_filelist_view_widget_fetch);
+        ewl_view_widget_constructor_set(fl->view,
+                                ewl_filelist_view_constructor);
+        ewl_view_widget_assign_set(fl->view,
+                                ewl_filelist_view_assign);
         ewl_view_header_fetch_set(fl->view,
                                 ewl_filelist_view_header_fetch);
 
@@ -270,7 +264,9 @@ ewl_filelist_directory_set(Ewl_Filelist *fl, const char *dir)
                 IF_FREE(fl->directory);
                 fl->directory = NULL;
         }
-        else if ((!fl->directory) || (strcmp(dir, fl->directory)))
+        else if (((!fl->directory) || (strcmp(dir, fl->directory))) &&
+                                ((ecore_file_is_dir(dir) &&
+                                 (ecore_file_can_read(dir)))))
         {
                 Ewl_Event_Action_Response ev_data;
 
@@ -346,7 +342,7 @@ ewl_filelist_filter_set(Ewl_Filelist *fl, Ewl_Filelist_Filter *filter)
 {
         Ewl_Filelist_Directory *dir;
         int ret = 0;
-        
+
         DENTER_FUNCTION(DLEVEL_STABLE);
         DCHECK_PARAM_PTR(fl);
         DCHECK_PARAM_PTR(filter);
@@ -355,7 +351,7 @@ ewl_filelist_filter_set(Ewl_Filelist *fl, Ewl_Filelist_Filter *filter)
         fl->filter = NULL;
         fl->filter = filter;
         dir = ewl_mvc_data_get(EWL_MVC(fl->controller));
-        
+
         /* Set the filelist and test if there is any change in data */
         if (dir)
                 ret = ewl_filelist_model_filter_set(dir, filter);
@@ -399,7 +395,7 @@ ewl_filelist_multiselect_set(Ewl_Filelist *fl, unsigned int ms)
                 DRETURN(DLEVEL_STABLE);
 
         fl->multiselect = !!ms;
-                
+
         if (fl->multiselect)
         {
                 ewl_mvc_selection_mode_set(EWL_MVC(fl->controller),
@@ -415,7 +411,7 @@ ewl_filelist_multiselect_set(Ewl_Filelist *fl, unsigned int ms)
 
         ewl_callback_call_with_event_data(EWL_WIDGET(fl),
                         EWL_CALLBACK_VALUE_CHANGED, &ev_data);
-        
+
         DLEAVE_FUNCTION(DLEVEL_STABLE);
 }
 
@@ -445,7 +441,7 @@ ewl_filelist_show_dot_files_set(Ewl_Filelist *fl, unsigned int dot)
 {
         Ewl_Filelist_Directory *dir;
         int ret = 0;
-        
+
         DENTER_FUNCTION(DLEVEL_STABLE);
         DCHECK_PARAM_PTR(fl);
         DCHECK_TYPE(fl, EWL_FILELIST_TYPE);
@@ -461,7 +457,7 @@ ewl_filelist_show_dot_files_set(Ewl_Filelist *fl, unsigned int dot)
                 ret = ewl_filelist_model_show_dot_files_set(dir, dot);
         if (ret)
                 ewl_mvc_dirty_set(EWL_MVC(fl->controller), TRUE);
-        
+
         DLEAVE_FUNCTION(DLEVEL_STABLE);
 }
 
@@ -518,7 +514,7 @@ ewl_filelist_selected_file_set(Ewl_Filelist *fl, const char *file)
         ecore_list_first_goto(temp);
         while ((file_temp = ecore_list_next(temp)))
         {
-                if (!strcoll(file_temp->name, file))
+                if (!strcoll(ewl_filelist_file_name_get(file_temp), file))
                 {
                         index = ecore_list_index(temp);
                         break;
@@ -526,12 +522,15 @@ ewl_filelist_selected_file_set(Ewl_Filelist *fl, const char *file)
         }
 
         if ((index >= 0) && (dir == 0))
+        {
                 ewl_mvc_selected_set(EWL_MVC(fl->controller), NULL,
                                         NULL, (index + data->num_dirs - 1), 0);
-        
+        }
         else if ((index >= 0) && (dir == 1))
+        {
                 ewl_mvc_selected_set(EWL_MVC(fl->controller), NULL,
                                         NULL, (index - 1), 0);
+        }
 
         FREE(filename);
         ewl_filelist_selected_files_change_notify(fl);
@@ -551,6 +550,7 @@ ewl_filelist_selected_file_get(Ewl_Filelist *fl)
         Ewl_Filelist_File *file;
         Ewl_Selection_Idx *idx;
         char path[PATH_MAX];
+        const char *name;
         int i;
 
         DENTER_FUNCTION(DLEVEL_STABLE);
@@ -563,7 +563,9 @@ ewl_filelist_selected_file_get(Ewl_Filelist *fl)
         idx = ewl_mvc_selected_get(EWL_MVC(fl->controller));
         data = EWL_SELECTION(idx)->data;
         if (idx->row < data->num_dirs)
+        {
                 file = ecore_list_index_goto(data->dirs, idx->row);
+        }
         else
         {
                 i = (idx->row - data->num_dirs);
@@ -578,165 +580,22 @@ ewl_filelist_selected_file_get(Ewl_Filelist *fl)
                 DRETURN_PTR(NULL, DLEVEL_STABLE);
         }
 
-        if (!strcmp(file->name, ".."))
+        name = ewl_filelist_file_name_get(file);
+
+        if (!strcmp(name, ".."))
+        {
                 snprintf(path, PATH_MAX, "%s", data->name);
-
+        }
         else if (!strcmp(data->name, "/"))
-                snprintf(path, PATH_MAX, "%s%s", data->name, file->name);
-
+        {
+                snprintf(path, PATH_MAX, "%s%s", data->name, name);
+        }
         else
-                snprintf(path, PATH_MAX, "%s/%s", data->name, file->name);
+        {
+                snprintf(path, PATH_MAX, "%s/%s", data->name, name);
+        }
 
         DRETURN_PTR(strdup(path), DLEVEL_STABLE);
-}
-
-/**
- * @param st_size: The size to convert
- * @return Returns a string representation of the given size
- * @brief Converts the given size into a human readable format
- */
-char *
-ewl_filelist_size_get(off_t st_size)
-{
-        double dsize;
-        char size[1024], *suffix;
-
-        DENTER_FUNCTION(DLEVEL_STABLE);
-
-        dsize = (double)st_size;
-        if (dsize < 1024)
-                snprintf(size, sizeof(size), "%.0f b", dsize);
-        else
-        {
-                dsize /= 1024.0;
-                if (dsize < 1024)
-                        suffix = "kb";
-                else
-                {
-                        dsize /= 1024.0;
-                        if (dsize < 1024)
-                                suffix = "mb";
-                        else
-                        {
-                                dsize /= 1024.0;
-                                suffix = "gb";
-                        }
-                }
-                snprintf(size, sizeof(size), "%.1f %s", dsize, suffix);
-        }
-
-        DRETURN_PTR(strdup(size), DLEVEL_STABLE);
-}
-
-/**
- * @param st_mode: The mode setting to convert
- * @return Returns the string of the given mode setting
- * @brief Converts the given mode settings into a human readable string
- */
-char *
-ewl_filelist_perms_get(mode_t st_mode)
-{
-        char *perm;
-        int i;
-
-        DENTER_FUNCTION(DLEVEL_STABLE);
-
-        perm = (char *)malloc(sizeof(char) * 10);
-        for (i = 0; i < 9; i++)
-                perm[i] = '-';
-
-        perm[9] = '\0';
-
-        if ((S_IRUSR & st_mode) == S_IRUSR) perm[0] = 'r';
-        if ((S_IWUSR & st_mode) == S_IWUSR) perm[1] = 'w';
-        if ((S_IXUSR & st_mode) == S_IXUSR) perm[2] = 'x';
-
-        if ((S_IRGRP & st_mode) == S_IRGRP) perm[3] = 'r';
-        if ((S_IWGRP & st_mode) == S_IWGRP) perm[4] = 'w';
-        if ((S_IXGRP & st_mode) == S_IXGRP) perm[5] = 'x';
-
-        if ((S_IROTH & st_mode) == S_IROTH) perm[6] = 'r';
-        if ((S_IWOTH & st_mode) == S_IWOTH) perm[7] = 'w';
-        if ((S_IXOTH & st_mode) == S_IXOTH) perm[8] = 'x';
-
-        DRETURN_PTR(perm, DLEVEL_STABLE);
-}
-
-/**
- * @param st_uid: The userid to lookup. On Windows, this parameter
- *                is unused.
- * @return Returns the user name for the given user id
- * @brief Convertes the given user id into the approriate user name
- */
-char *
-ewl_filelist_username_get(uid_t st_uid)
-{
-        char name[PATH_MAX];
-#ifdef HAVE_PWD_H
-        struct passwd *pwd = NULL;
-#endif /* HAVE_PWD_H */
-
-        DENTER_FUNCTION(DLEVEL_STABLE);
-
-#ifdef HAVE_PWD_H
-        pwd = getpwuid(st_uid);
-        if (pwd)
-                snprintf(name, PATH_MAX, "%s", pwd->pw_name);
-        else
-#endif /* HAVE_PWD_H */
-                snprintf(name, PATH_MAX, "%-8d", (int)st_uid);
-
-        DRETURN_PTR(strdup(name), DLEVEL_STABLE);
-}
-
-/**
- * @param st_gid: The group id to convert On Windows, this parameter
- *                is unused.
- * @return Returns the group name for the given id
- * @brief Converts the given group id into a group name
- */
-char *
-ewl_filelist_groupname_get(gid_t st_gid)
-{
-        char name[PATH_MAX];
-#ifdef HAVE_GRP_H
-        struct group *grp;
-#endif /* HAVE_GRP_H */
-
-        DENTER_FUNCTION(DLEVEL_STABLE);
-
-#ifdef HAVE_GRP_H
-        grp = getgrgid(st_gid);
-        if (grp)
-                snprintf(name, PATH_MAX, "%s", grp->gr_name);
-        else
-#endif /* HAVE_GRP_H */
-                snprintf(name, PATH_MAX, "%-8d", (int)st_gid);
-
-        DRETURN_PTR(strdup(name), DLEVEL_STABLE);
-}
-
-/**
- * @param st_modtime: The modification time to convert
- * @return Returns the string version of the modtime
- * @brief Converts the given modtime to a human readable string
- */
-char *
-ewl_filelist_modtime_get(time_t st_modtime)
-{
-        char *time;
-
-        DENTER_FUNCTION(DLEVEL_STABLE);
-
-        time = ctime(&st_modtime);
-        if (time)
-        {
-                time = strdup(time);
-                time[strlen(time) - 1] = '\0';
-        }
-        else time = strdup("Unknown");
-
-        DRETURN_PTR(time, DLEVEL_STABLE);
 }
 
 /**
@@ -752,7 +611,7 @@ ewl_filelist_selected_file_preview_get(Ewl_Filelist *fl, const char *path)
         const char *path2;
         char path3[PATH_MAX], file_info[PATH_MAX];
         char *size, *perms, *username, *groupname, *time;
-        struct stat buf;
+        Ewl_Filelist_File *file;
 
         DENTER_FUNCTION(DLEVEL_STABLE);
         DCHECK_PARAM_PTR_RET(fl, NULL);
@@ -762,13 +621,22 @@ ewl_filelist_selected_file_preview_get(Ewl_Filelist *fl, const char *path)
         path2 = ewl_filelist_directory_get(EWL_FILELIST(fl));
         snprintf(path3, PATH_MAX, "%s/%s", path2, path);
 
-        stat(path3, &buf);
+        /* Generate the file information */
+        file = ewl_filelist_file_new();
+        if (!file)
+                DRETURN_PTR(NULL, DLEVEL_STABLE);
 
-        size = ewl_filelist_size_get(buf.st_size);
-        perms = ewl_filelist_perms_get(buf.st_mode);
-        username = ewl_filelist_username_get(buf.st_uid);
-        groupname = ewl_filelist_groupname_get(buf.st_gid);
-        time = ewl_filelist_modtime_get(buf.st_mtime);
+        if (!ewl_filelist_file_path_set(file, path3))
+        {
+                ewl_filelist_file_destroy(file);
+                DRETURN_PTR(NULL, DLEVEL_STABLE);
+        }
+
+        size = ewl_filelist_file_size_get(file);
+        perms = ewl_filelist_file_perms_get(file);
+        username = ewl_filelist_file_username_get(file);
+        groupname = ewl_filelist_file_groupname_get(file);
+        time = ewl_filelist_file_modtime_get(file);
 
         snprintf(file_info, PATH_MAX,
                                 "Size: %s\n"
@@ -804,6 +672,7 @@ ewl_filelist_selected_file_preview_get(Ewl_Filelist *fl, const char *path)
         ewl_container_child_append(EWL_CONTAINER(box), icon);
         ewl_widget_show(icon);
 
+        ewl_filelist_file_destroy(file);
         FREE(size);
         FREE(perms);
         FREE(username);
@@ -889,7 +758,8 @@ ewl_filelist_selected_files_set(Ewl_Filelist *fl, Ecore_List *files)
                 /* Search the list and return the index if found */
                 while ((file = ecore_list_next(temp)))
                 {
-                        if (!strcmp(file->name, ecore_file_file_get(path)))
+                        if (!strcmp(ewl_filelist_file_name_get(file),
+                                                ecore_file_file_get(path)))
                         {
                                 index = (index + ecore_list_index(temp) - 1);
                                 sel = ewl_mvc_selection_index_new(fl->model, 
@@ -899,7 +769,7 @@ ewl_filelist_selected_files_set(Ewl_Filelist *fl, Ecore_List *files)
                         }
                 }
                 ecore_list_first_goto(temp);
-        }                
+        }
 
         ewl_mvc_selected_list_set(EWL_MVC(fl->controller), selected);
         ewl_filelist_selected_files_change_notify(fl);
@@ -922,6 +792,7 @@ ewl_filelist_selected_files_get(Ewl_Filelist *fl)
         Ewl_Filelist_Directory *data;
         Ewl_Filelist_File *file;
         char path[PATH_MAX];
+        const char *name;
 
         DENTER_FUNCTION(DLEVEL_STABLE);
         DCHECK_PARAM_PTR_RET(fl, NULL);
@@ -938,14 +809,18 @@ ewl_filelist_selected_files_get(Ewl_Filelist *fl)
                 if (sel->type == EWL_SELECTION_TYPE_INDEX)
                 {
                         Ewl_Selection_Idx *idx;
-                        
+
                         idx = EWL_SELECTION_IDX(sel);
                         /* Get the file data */
                         if (idx->row < data->num_dirs)
+                        {
                                 file = ecore_list_index_goto(data->dirs, idx->row);
+                        }
                         else
+                        {
                                 file = ecore_list_index_goto(data->files,
                                                  (idx->row - data->num_dirs));
+                        }
 
                         if (!file)
                         {
@@ -955,17 +830,23 @@ ewl_filelist_selected_files_get(Ewl_Filelist *fl)
                                 continue;
                         }
 
-                        if (!strcmp(file->name, ".."))
+                        name = ewl_filelist_file_name_get(file);
+
+                        if (!strcmp(name, ".."))
+                        {
                                 snprintf(path, PATH_MAX, "%s", data->name);
-
+                        }
                         else if (!strcmp(data->name, "/"))
+                        {
                                 snprintf(path, PATH_MAX, "%s%s",
-                                                data->name, file->name);
-
+                                                data->name, name);
+                        }
                         else
+                        {
                                 snprintf(path, PATH_MAX, "%s/%s",
-                                                data->name, file->name);
-                        
+                                                data->name, name);
+                        }
+
                         ecore_list_append(ret, strdup(path));
                 }
 
@@ -993,21 +874,26 @@ ewl_filelist_selected_files_get(Ewl_Filelist *fl)
                                         continue;
                                 }
 
-                                if (!strcmp(file->name, ".."))
+                                name = ewl_filelist_file_name_get(file);
+                                if (!strcmp(name, ".."))
+                                {
                                         snprintf(path, PATH_MAX, "%s", data->name);
-
+                                }
                                 else if (!strcmp(data->name, "/"))
+                                {
                                         snprintf(path, PATH_MAX, "%s%s",
-                                                data->name, file->name);
-
+                                                data->name, name);
+                                }
                                 else
+                                {
                                         snprintf(path, PATH_MAX, "%s/%s",
-                                                data->name, file->name);
-                                
+                                                data->name, name);
+                                }
+
                                 ecore_list_append(ret, strdup(path));
                         }
                 }
-        }        
+        }
 
         DRETURN_PTR(ret, DLEVEL_STABLE);
 }
@@ -1041,7 +927,7 @@ ewl_filelist_selected_files_change_notify(Ewl_Filelist *fl)
  * @brief Sets the value to use for flags on the vertical scrollbar
  */
 void
-ewl_filelist_vscroll_flag_set(Ewl_Filelist *fl, Ewl_Scrollpane_Flags v)
+ewl_filelist_vscroll_flag_set(Ewl_Filelist *fl, Ewl_Scrollport_Flags v)
 {
         DENTER_FUNCTION(DLEVEL_STABLE);
         DCHECK_PARAM_PTR(fl);
@@ -1057,13 +943,13 @@ ewl_filelist_vscroll_flag_set(Ewl_Filelist *fl, Ewl_Scrollpane_Flags v)
  * @return Returns the flags for the vertical scrollbar
  * @brief Retrieves the flags for the vertical scrollbar
  */
-Ewl_Scrollpane_Flags
+Ewl_Scrollport_Flags
 ewl_filelist_vscroll_flag_get(Ewl_Filelist *fl)
 {
         DENTER_FUNCTION(DLEVEL_STABLE);
-        DCHECK_PARAM_PTR_RET(fl, EWL_SCROLLPANE_FLAG_NONE);
+        DCHECK_PARAM_PTR_RET(fl, EWL_SCROLLPORT_FLAG_NONE);
         DCHECK_TYPE_RET(fl, EWL_FILELIST_TYPE,
-                                        EWL_SCROLLPANE_FLAG_NONE);
+                                        EWL_SCROLLPORT_FLAG_NONE);
 
         DRETURN_INT(fl->scroll_flags.v, DLEVEL_STABLE);
 }
@@ -1075,7 +961,7 @@ ewl_filelist_vscroll_flag_get(Ewl_Filelist *fl)
  * @brief Sets the value to use for flags on the horizontal scrollbar
  */
 void
-ewl_filelist_hscroll_flag_set(Ewl_Filelist *fl, Ewl_Scrollpane_Flags h)
+ewl_filelist_hscroll_flag_set(Ewl_Filelist *fl, Ewl_Scrollport_Flags h)
 {
         DENTER_FUNCTION(DLEVEL_STABLE);
         DCHECK_PARAM_PTR(fl);
@@ -1091,13 +977,13 @@ ewl_filelist_hscroll_flag_set(Ewl_Filelist *fl, Ewl_Scrollpane_Flags h)
  * @return Returns the flags for the horizontal scrollbar
  * @brief Retrieves the flags for the horizontal scrollbar
  */
-Ewl_Scrollpane_Flags
+Ewl_Scrollport_Flags
 ewl_filelist_hscroll_flag_get(Ewl_Filelist *fl)
 {
         DENTER_FUNCTION(DLEVEL_STABLE);
-        DCHECK_PARAM_PTR_RET(fl, EWL_SCROLLPANE_FLAG_NONE);
+        DCHECK_PARAM_PTR_RET(fl, EWL_SCROLLPORT_FLAG_NONE);
         DCHECK_TYPE_RET(fl, EWL_FILELIST_TYPE,
-                                        EWL_SCROLLPANE_FLAG_NONE);
+                                        EWL_SCROLLPORT_FLAG_NONE);
 
         DRETURN_INT(fl->scroll_flags.h, DLEVEL_STABLE);
 }
@@ -1205,11 +1091,19 @@ ewl_filelist_cb_destroy(Ewl_Widget *w, void *ev __UNUSED__,
         DENTER_FUNCTION(DLEVEL_STABLE);
         DCHECK_PARAM_PTR(w);
         DCHECK_TYPE(w, EWL_FILELIST_TYPE);
-        
+
         fl = EWL_FILELIST(w);
         IF_FREE(fl->directory);
-        IF_FREE(fl->view);
-        IF_FREE(fl->model);
+        if (fl->view)
+        {
+                ewl_view_destroy(fl->view);
+                fl->view = NULL;
+        }
+        if (fl->model)
+        {
+                ewl_model_destroy(fl->model);
+                fl->model = NULL;
+        }
         fl->filter = NULL;
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
@@ -1272,7 +1166,7 @@ ewl_filelist_cb_clicked(Ewl_Widget *w, void *ev,
         /* Change dir if dir, else call above */
         else if (ecore_file_is_dir(file))
                 ewl_filelist_directory_set(fl, file);
-        
+
         /* Send signal of file selected */
         else
                 ewl_filelist_selected_files_change_notify(fl);

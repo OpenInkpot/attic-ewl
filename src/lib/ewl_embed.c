@@ -339,10 +339,8 @@ ewl_embed_active_set(Ewl_Embed *embed, unsigned int act)
         {
                 Ewl_Widget *temp;
 
-                ewl_widget_state_remove(e->last.clicked,
-                                                EWL_FLAG_STATE_FOCUSED);
-                ewl_widget_state_remove(e->last.clicked,
-                                                EWL_FLAG_STATE_PRESSED);
+                ewl_widget_state_remove(e->last.clicked, EWL_STATE_FOCUSED);
+                ewl_widget_state_remove(e->last.clicked, EWL_STATE_MOUSE_DOWN);
 
                 ewl_callback_call(e->last.clicked, EWL_CALLBACK_FOCUS_OUT);
 
@@ -351,7 +349,7 @@ ewl_embed_active_set(Ewl_Embed *embed, unsigned int act)
                 while (temp) {
                         if (!DISABLED(temp))
                                 ewl_widget_state_remove(temp,
-                                                        EWL_FLAG_STATE_PRESSED);
+                                                        EWL_STATE_MOUSE_DOWN);
                         temp = temp->parent;
                 }
 
@@ -595,7 +593,7 @@ ewl_embed_mouse_down_feed(Ewl_Embed *embed, int b, int clicks, int x, int y,
         temp = widget;
         while (temp) {
                 if (!DISABLED(temp)) {
-                        ewl_widget_state_add(temp, EWL_FLAG_STATE_PRESSED);
+                        ewl_widget_state_add(temp, EWL_STATE_MOUSE_DOWN);
 
                         ewl_callback_call_with_event_data(temp,
                                         EWL_CALLBACK_MOUSE_DOWN, &ev);
@@ -622,15 +620,13 @@ ewl_embed_mouse_down_feed(Ewl_Embed *embed, int b, int clicks, int x, int y,
                  */
                 if (deselect && !DESTROYED(deselect) &&
                                 !ewl_widget_parent_of(deselect, widget)) {
-                        ewl_widget_state_remove(deselect,
-                                        EWL_FLAG_STATE_FOCUSED);
+                        ewl_widget_state_remove(deselect, EWL_STATE_FOCUSED);
                         ewl_callback_call_with_event_data(deselect,
                                         EWL_CALLBACK_FOCUS_OUT, widget);
                 }
 
                 if (widget && !DISABLED(widget) && !DESTROYED(widget)) {
-                        ewl_widget_state_add(widget,
-                                        EWL_FLAG_STATE_FOCUSED);
+                        ewl_widget_state_add(widget, EWL_STATE_FOCUSED);
                         ewl_callback_call_with_event_data(widget,
                                         EWL_CALLBACK_FOCUS_IN, deselect);
                 }
@@ -649,8 +645,8 @@ ewl_embed_mouse_down_feed(Ewl_Embed *embed, int b, int clicks, int x, int y,
  * @brief Sends the event for a mouse button release into an embed.
  */
 void
-ewl_embed_mouse_up_feed(Ewl_Embed *embed, int b, int x, int y,
-                        unsigned int mods)
+ewl_embed_mouse_up_feed(Ewl_Embed *embed, int b, int clicks,
+                        int x, int y, unsigned int mods)
 {
         Ewl_Widget *temp;
         Ewl_Event_Mouse_Up ev;
@@ -672,6 +668,7 @@ ewl_embed_mouse_up_feed(Ewl_Embed *embed, int b, int x, int y,
         ev.base.x = x;
         ev.base.y = y;
         ev.button = b;
+        ev.clicks = clicks;
 
         /*
          * When the mouse is released the widget no longer has a pressed state,
@@ -680,8 +677,7 @@ ewl_embed_mouse_up_feed(Ewl_Embed *embed, int b, int x, int y,
         temp = embed->last.clicked;
         while (temp) {
                 if (!DISABLED(temp)) {
-                        ewl_widget_state_remove(temp,
-                                        EWL_FLAG_STATE_PRESSED);
+                        ewl_widget_state_remove(temp, EWL_STATE_MOUSE_DOWN);
                         ewl_callback_call_with_event_data(temp,
                                         EWL_CALLBACK_MOUSE_UP, &ev);
 
@@ -729,7 +725,7 @@ ewl_embed_mouse_move_feed(Ewl_Embed *embed, int x, int y, unsigned int mods)
          * focused widget.
          */
         check = embed->last.mouse_in;
-        if (!check || !ewl_widget_state_has(check, EWL_FLAG_STATE_PRESSED)) {
+        if (!check || !ewl_widget_state_has(check, EWL_STATE_MOUSE_DOWN)) {
 
                 widget = ewl_container_child_at_recursive_get(EWL_CONTAINER(embed), x, y);
                 if (!widget) widget = EWL_WIDGET(embed);
@@ -769,7 +765,7 @@ ewl_embed_mouse_move_feed(Ewl_Embed *embed, int x, int y, unsigned int mods)
         while (check && (widget != check)
                         && !ewl_widget_parent_of(check, widget)) {
 
-                ewl_widget_state_remove(check, EWL_FLAG_STATE_MOUSE_IN);
+                ewl_widget_state_remove(check, EWL_STATE_MOUSE_IN);
                 ewl_callback_call(check, EWL_CALLBACK_MOUSE_OUT);
                 check = check->parent;
         }
@@ -786,8 +782,8 @@ ewl_embed_mouse_move_feed(Ewl_Embed *embed, int x, int y, unsigned int mods)
                         /*
                          * First mouse move event in a widget marks it focused.
                          */
-                        if (!(ewl_widget_state_has(check,
-                                                EWL_FLAG_STATE_MOUSE_IN))) {
+                        if (!(ewl_widget_state_has(check, EWL_STATE_MOUSE_IN)))
+                        {
 
                                 /* Only set the cursor different if it is non-default */
                                 if (ewl_attach_get(check,
@@ -797,7 +793,7 @@ ewl_embed_mouse_move_feed(Ewl_Embed *embed, int x, int y, unsigned int mods)
                                         ewl_embed_mouse_cursor_set(check);
 
                                 ewl_widget_state_add(check,
-                                                EWL_FLAG_STATE_MOUSE_IN);
+                                                EWL_STATE_MOUSE_IN);
                                 ewl_callback_call_with_event_data(check,
                                                 EWL_CALLBACK_MOUSE_IN, &ev);
                         }
@@ -819,12 +815,12 @@ ewl_embed_mouse_move_feed(Ewl_Embed *embed, int x, int y, unsigned int mods)
          * events.
          */
         check = embed->last.drag_widget;
-        if (check && ewl_widget_state_has(check, EWL_FLAG_STATE_DND))
+        if (check && ewl_widget_state_has(check, EWL_STATE_DND))
                 ewl_callback_call_with_event_data(check,
                                                   EWL_CALLBACK_MOUSE_MOVE, &ev);
 
         check = embed->last.clicked;
-        if (check && ewl_widget_state_has(check, EWL_FLAG_STATE_PRESSED))
+        if (check && ewl_widget_state_has(check, EWL_STATE_MOUSE_DOWN))
                 ewl_callback_call_with_event_data(check,
                                                   EWL_CALLBACK_MOUSE_MOVE, &ev);
 
@@ -906,7 +902,8 @@ ewl_embed_dnd_drop_feed(Ewl_Embed *embed, int x, int y)
  * @brief Sends the event for a DND position into an embed.
  */
 const char *
-ewl_embed_dnd_position_feed(Ewl_Embed *embed, int x, int y, int* px, int* py, int* pw, int* ph)
+ewl_embed_dnd_position_feed(Ewl_Embed *embed, int x, int y, int *px, int *py,
+                                int *pw, int *ph)
 {
         const char *result = NULL;
         Ewl_Widget *widget = NULL, *parent = NULL;
@@ -1012,14 +1009,14 @@ ewl_embed_mouse_out_feed(Ewl_Embed *embed, int x, int y, unsigned int mods)
 
         while (embed->last.mouse_in) {
                 ewl_widget_state_remove(embed->last.mouse_in,
-                                        EWL_FLAG_STATE_MOUSE_IN);
+                                        EWL_STATE_MOUSE_IN);
                 ewl_callback_call_with_event_data(embed->last.mouse_in,
                                                   EWL_CALLBACK_MOUSE_OUT, &ev);
                 embed->last.mouse_in = embed->last.mouse_in->parent;
         }
 
         if ((embed->last.drag_widget) && (ewl_widget_state_has
-                                (embed->last.drag_widget, EWL_FLAG_STATE_DND)))
+                                (embed->last.drag_widget, EWL_STATE_DND)))
                 ewl_dnd_external_drag_start(embed->last.drag_widget);
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
@@ -1099,7 +1096,7 @@ ewl_embed_dnd_data_received_feed(Ewl_Embed *embed, char *type, void *data,
                         ev.type = type;
                         ev.data = data;
                         ev.len = len;
-                        ev.format= format;
+                        ev.format = format;
                         ewl_callback_call_with_event_data(embed->last.drop_widget,
                                           EWL_CALLBACK_DND_DATA_RECEIVED, &ev);
                 }
@@ -1612,13 +1609,19 @@ ewl_embed_focused_widget_set(Ewl_Embed *embed, Ewl_Widget *w)
         DCHECK_TYPE(w, EWL_WIDGET_TYPE);
 
         if (embed->last.focused && (embed->last.focused != w))
+        {
+                ewl_widget_state_remove(embed->last.focused, EWL_STATE_FOCUSED);
                 ewl_callback_call_with_event_data(embed->last.focused,
                                 EWL_CALLBACK_FOCUS_OUT, w);
+        }
 
         embed->last.focused = w;
 
         if (embed->last.focused)
+        {
+                ewl_widget_state_add(embed->last.focused, EWL_STATE_FOCUSED);
                 ewl_callback_call(embed->last.focused, EWL_CALLBACK_FOCUS_IN);
+        }
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
 }
@@ -1675,7 +1678,7 @@ ewl_embed_info_widgets_cleanup(Ewl_Embed *e, Ewl_Widget *w)
         DCHECK_TYPE(e, EWL_EMBED_TYPE);
         DCHECK_TYPE(w, EWL_WIDGET_TYPE);
 
-        ewl_widget_state_remove(w, EWL_FLAG_STATE_PRESSED);
+        ewl_widget_state_remove(w, EWL_STATE_MOUSE_DOWN);
 
         if ((w == e->last.focused)
                         || (RECURSIVE(w)
@@ -2054,8 +2057,10 @@ ewl_embed_cb_focus_out(Ewl_Widget *w, void *ev_data __UNUSED__,
         if (!emb->last.focused)
                 DRETURN(DLEVEL_STABLE);
 
-        if (ewl_widget_state_has(emb->last.focused, EWL_FLAG_STATE_PRESSED))
-                ewl_embed_mouse_up_feed(emb, 1, 0, 0, ewl_ev_modifiers_get());
+        /* since we lose focus here, it cannot be a double or triple click,
+         * hence feed one */
+        if (ewl_widget_state_has(emb->last.focused, EWL_STATE_MOUSE_DOWN))
+                ewl_embed_mouse_up_feed(emb, 1, 1, 0, 0, ewl_ev_modifiers_get());
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
 }
@@ -2304,7 +2309,9 @@ ewl_embed_smart_cb_move(Evas_Object *obj, Evas_Coord x, Evas_Coord y)
         DCHECK_PARAM_PTR(obj);
 
         emb = evas_object_smart_data_get(obj);
-        if (emb)
+        if (emb && (ewl_object_current_x_get(EWL_OBJECT(emb)) != (int)x
+                                || ewl_object_current_y_get(EWL_OBJECT(emb))
+                                        != (int)y))
                 ewl_object_position_request(EWL_OBJECT(emb),
                                                 (int)(x), (int)(y));
 
@@ -2320,7 +2327,9 @@ ewl_embed_smart_cb_resize(Evas_Object *obj, Evas_Coord w, Evas_Coord h)
         DCHECK_PARAM_PTR(obj);
 
         emb = evas_object_smart_data_get(obj);
-        if (emb)
+        if (emb && (ewl_object_current_w_get(EWL_OBJECT(emb)) != (int)w
+                                || ewl_object_current_h_get(EWL_OBJECT(emb)) 
+                                        != (int)h))
                 ewl_object_size_request(EWL_OBJECT(emb), (int)(w), (int)(h));
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
@@ -2365,8 +2374,13 @@ ewl_embed_smart_cb_clip_set(Evas_Object *obj, Evas_Object *clip)
 
         emb = evas_object_smart_data_get(obj);
         w = EWL_WIDGET(emb);
-        if (emb && w->fx_clip_box && (clip != w->fx_clip_box))
-                evas_object_clip_set(w->fx_clip_box, clip);
+        if (!emb)
+                DRETURN(DLEVEL_STABLE);
+        
+        if (w->theme_object)
+                evas_object_clip_set(w->theme_object, clip);
+        else
+                evas_object_clip_set(w->smart_object, clip);
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
 }
@@ -2382,8 +2396,13 @@ ewl_embed_smart_cb_clip_unset(Evas_Object *obj)
 
         emb = evas_object_smart_data_get(obj);
         w = EWL_WIDGET(emb);
-        if (emb && w->fx_clip_box)
-                evas_object_clip_unset(w->fx_clip_box);
+        if (!emb)
+                DRETURN(DLEVEL_STABLE);
+        
+        if (w->theme_object)
+                evas_object_clip_unset(w->theme_object);
+        else
+                evas_object_clip_unset(w->smart_object);
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
 }
@@ -2448,6 +2467,7 @@ static void
 ewl_embed_evas_cb_mouse_up(void *data, Evas *e __UNUSED__,
                                 Evas_Object *obj __UNUSED__, void *event_info)
 {
+        int clicks;
         Ewl_Embed *embed;
         Evas_Event_Mouse_Up *ev;
 
@@ -2457,7 +2477,16 @@ ewl_embed_evas_cb_mouse_up(void *data, Evas *e __UNUSED__,
 
         ev = event_info;
         embed = data;
-        ewl_embed_mouse_up_feed(embed, ev->button, ev->canvas.x,
+
+        /* Proper number of clicks here */
+        if (ev->flags & EVAS_BUTTON_TRIPLE_CLICK)
+                clicks = 3;
+        else if (ev->flags & EVAS_BUTTON_DOUBLE_CLICK)
+                clicks = 2;
+        else
+                clicks = 1;
+
+        ewl_embed_mouse_up_feed(embed, ev->button, clicks, ev->canvas.x,
                                   ev->canvas.y, ewl_ev_modifiers_get());
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);

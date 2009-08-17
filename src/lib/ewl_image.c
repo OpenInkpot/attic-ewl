@@ -5,9 +5,6 @@
 #include "ewl_macros.h"
 #include "ewl_debug.h"
 
-#include <Evas.h>
-#include <Edje.h>
-
 #ifdef BUILD_EPSILON_SUPPORT
 #include <Epsilon.h>
 #include <Epsilon_Request.h>
@@ -26,7 +23,10 @@ static void ewl_image_rotate_90(Ewl_Image *img, int cc);
 
 static Ewl_Widget *ewl_image_view_cb_header_fetch(void *data, unsigned int col,
                                                         void *pr_data);
-static Ewl_Widget *ewl_image_view_cb_widget_fetch(void *data, unsigned int row,
+static Ewl_Widget *ewl_image_view_cb_constructor(unsigned int col,
+                                                        void *pr_data);
+static void ewl_image_view_cb_assign(Ewl_Widget *w, void *data,
+                                                        unsigned int row,
                                                         unsigned int col,
                                                         void *pr_data);
 
@@ -68,26 +68,35 @@ ewl_image_view_get(void)
         DENTER_FUNCTION(DLEVEL_STABLE);
 
         view = ewl_view_new();
-        ewl_view_widget_fetch_set(view, ewl_image_view_cb_widget_fetch);
+        ewl_view_widget_constructor_set(view, ewl_image_view_cb_constructor);
+        ewl_view_widget_assign_set(view, ewl_image_view_cb_assign);
         ewl_view_header_fetch_set(view, ewl_image_view_cb_header_fetch);
 
         DRETURN_PTR(view, DLEVEL_STABLE);
 }
 
 static Ewl_Widget *
-ewl_image_view_cb_widget_fetch(void *data, unsigned int row __UNUSED__,
-                                                unsigned int col __UNUSED__,
-                                                void *pr_data __UNUSED__)
+ewl_image_view_cb_constructor(unsigned int col __UNUSED__,
+                                void *pr_data __UNUSED__)
 {
-        Ewl_Widget *image;
-
         DENTER_FUNCTION(DLEVEL_STABLE);
 
-        image = ewl_image_new();
-        ewl_image_file_path_set(EWL_IMAGE(image), data);
-
-        DRETURN_PTR(image, DLEVEL_STABLE);
+        DRETURN_PTR(ewl_image_new(), DLEVEL_STABLE);
 }
+
+static void
+ewl_image_view_cb_assign(Ewl_Widget *w, void *data,
+                                unsigned int row __UNUSED__,
+                                unsigned int col __UNUSED__,
+                                void *pr_data __UNUSED__)
+{
+        DENTER_FUNCTION(DLEVEL_STABLE);
+
+        ewl_image_file_path_set(EWL_IMAGE(w), data);
+
+        DLEAVE_FUNCTION(DLEVEL_STABLE);
+}
+
 
 static Ewl_Widget *
 ewl_image_view_cb_header_fetch(void *data, unsigned int col __UNUSED__,
@@ -125,6 +134,7 @@ ewl_image_init(Ewl_Image *i)
 
         ewl_widget_appearance_set(w, EWL_IMAGE_TYPE);
         ewl_widget_inherit(w, EWL_IMAGE_TYPE);
+        ewl_widget_visible_add(w, EWL_FLAG_VISIBLE_SMARTOBJ);
 
         ewl_object_fill_policy_set(EWL_OBJECT(w), EWL_FLAG_FILL_NONE);
 
@@ -138,12 +148,6 @@ ewl_image_init(Ewl_Image *i)
         ewl_callback_prepend(w, EWL_CALLBACK_DESTROY, ewl_image_cb_destroy,
                             NULL);
         ewl_callback_append(w, EWL_CALLBACK_CONFIGURE, ewl_image_cb_configure,
-                            NULL);
-        ewl_callback_append(w, EWL_CALLBACK_MOUSE_DOWN, ewl_image_cb_mouse_down,
-                            NULL);
-        ewl_callback_append(w, EWL_CALLBACK_MOUSE_UP, ewl_image_cb_mouse_up,
-                            NULL);
-        ewl_callback_append(w, EWL_CALLBACK_MOUSE_MOVE, ewl_image_cb_mouse_move,
                             NULL);
 
         i->sw = 1.0;
@@ -548,8 +552,7 @@ ewl_image_flip(Ewl_Image *img, Ewl_Orientation orient)
         DCHECK_PARAM_PTR(img);
         DCHECK_TYPE(img, EWL_IMAGE_TYPE);
 
-        evas_object_image_size_get(img->image, &w, &h);
-        in = evas_object_image_data_get(img->image, TRUE);
+        in = ewl_image_data_get(img, &w, &h, EWL_IMAGE_DATA_WRITE);
 
         if (orient == EWL_ORIENTATION_VERTICAL)
         {
@@ -588,8 +591,9 @@ ewl_image_flip(Ewl_Image *img, Ewl_Orientation orient)
                 }
         }
 
-        evas_object_image_data_set(img->image, in);
-        evas_object_image_data_update_add(img->image, 0, 0, w, h);
+        /* XXX we should actually preserve the previous setting */
+        ewl_image_data_set(img, in, w, h, EWL_COLORSPACE_ARGB);
+        ewl_image_data_update_add(img, 0, 0, w, h);
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
 }
@@ -617,6 +621,113 @@ ewl_image_rotate(Ewl_Image *i, Ewl_Rotate rotate)
         else
                 ewl_image_rotate_90(i, TRUE);
 
+
+        DLEAVE_FUNCTION(DLEVEL_STABLE);
+}
+
+/**
+ * @param i: The image to get the data
+ * @param w: pointer to store the width
+ * @param h: pointer to store the height
+ * @param access: the access mode
+ * @return Returns the image data of the image widget
+ * @brief Retrieve the data of the image widget
+ *
+ * This function will return the image data of the image widget. The size
+ * of the image data is stored by the pointers @p w and @p h. Since
+ * operating on the image data with out knowing its actually size is dangerous,
+ * it is not allowed to pass @c NULL pointer for @p w and @p h.
+ *
+ * The @p access parameter defines the purpose to get the data. There are
+ * three different modes:
+ *      - @c EWL_IMAGE_DATA_SIZE: no data is returned, use this to only
+ *        retrieve the size
+ *      - @c EWL_IMAGE_DATA_READ: the data is meant to be read only
+ *      - @c EWL_IMAGE_DATA_WRITE: the data is meant to be read and written
+ *
+ * If the image isn't already realized or if an error occurs, @c NULL will be
+ * returned.
+ */
+void *
+ewl_image_data_get(Ewl_Image *i, int *w, int *h, Ewl_Image_Data_Mode access)
+{
+        Ewl_Embed *emb;
+
+        DENTER_FUNCTION(DLEVEL_STABLE);
+        DCHECK_PARAM_PTR_RET(i, NULL);
+        DCHECK_PARAM_PTR_RET(w, NULL);
+        DCHECK_PARAM_PTR_RET(h, NULL);
+        DCHECK_TYPE_RET(i, EWL_IMAGE_TYPE, NULL);
+
+        if (!REALIZED(i) || i->type == EWL_IMAGE_TYPE_EDJE || !i->image)
+        {
+                *w = *h = 0;
+                DRETURN_PTR(NULL, DLEVEL_STABLE);
+        }
+
+        emb = ewl_embed_widget_find(EWL_WIDGET(i));
+        DRETURN_PTR(ewl_engine_theme_image_data_get(emb, i->image, w, h, 
+                                                        access),
+                        DLEVEL_STABLE);
+}
+
+/**
+ * @param i: The image to set the data
+ * @param w: the width of the data
+ * @param h: the height of the data
+ * @param cs: the colorspaced of the data
+ * @return Returns @c TRUE on success, else @c FALSE
+ * @brief Set the data of the image
+ *
+ * This function will set the image data of the image widget. The colorspace
+ * of the data can either be @c EWL_COLORSPACE_ARGB or @c EWL_COLORSPACE_RGB.
+ * In the latter case the alpha channel will be ignored. The data is after that
+ * owned and freed by ewl.
+ */
+unsigned int
+ewl_image_data_set(Ewl_Image *i, void *data, int w, int h, Ewl_Colorspace cs)
+{
+        Ewl_Embed *emb;
+
+        DENTER_FUNCTION(DLEVEL_STABLE);
+        DCHECK_PARAM_PTR_RET(i, FALSE);
+        DCHECK_TYPE_RET(i, EWL_IMAGE_TYPE, FALSE);
+
+        if (!REALIZED(i) || i->type == EWL_IMAGE_TYPE_EDJE || !i->image)
+                DRETURN_INT(FALSE, DLEVEL_STABLE);
+
+        emb = ewl_embed_widget_find(EWL_WIDGET(i));
+        ewl_engine_theme_image_data_set(emb, i->image, data, w, h, cs);
+
+        DRETURN_INT(TRUE, DLEVEL_STABLE);
+}
+
+/**
+ * @param i: the image to work with
+ * @param x: the x offset of the region to be updated
+ * @param y: the y offset of the region to be updated
+ * @param w: the width of the region to be updated
+ * @param h: the height of the region to be updated
+ *
+ * After changing a region of an image it's neccessary to call this function,
+ * so this area will be marked to updated later. The coordinates and the size
+ * of the region is in units of the image data and not of the actual screen
+ * position.
+ */
+void
+ewl_image_data_update_add(Ewl_Image *i, int x, int y, int w, int h)
+{
+        Ewl_Embed *emb;
+
+        DENTER_FUNCTION(DLEVEL_STABLE);
+        DCHECK_PARAM_PTR(i);
+        DCHECK_TYPE(i, EWL_IMAGE_TYPE);
+
+        if (!REALIZED(i) || i->type == EWL_IMAGE_TYPE_EDJE || !i->image)
+                DRETURN(DLEVEL_STABLE);
+
+        emb = ewl_embed_widget_find(EWL_WIDGET(i));
+        ewl_engine_theme_image_data_update(emb, i->image, x, y, w, h);
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
 }
@@ -875,35 +986,33 @@ ewl_image_cb_reveal(Ewl_Widget *w, void *ev_data __UNUSED__,
                 if (!i->image)
                         i->image = ewl_embed_object_request(emb, "edje");
                 if (!i->image)
-                        i->image = edje_object_add(emb->canvas);
+                        i->image = ewl_engine_theme_element_add(emb);
                 if (!i->image)
                         DRETURN(DLEVEL_STABLE);
 
                 if (i->path)
-                        edje_object_file_set(i->image, i->path, i->key);
-                edje_object_size_min_get(i->image, &i->ow, &i->oh);
+                        ewl_engine_theme_element_file_set(emb, i->image, 
+                                        i->path, i->key);
+                ewl_engine_theme_element_minimum_size_get(emb, i->image,
+                                        &i->ow, &i->oh);
         } else {
                 if (!i->image)
                         i->image = ewl_embed_object_request(emb, EWL_IMAGE_TYPE);
                 if (!i->image)
-                        i->image = evas_object_image_add(emb->canvas);
+                        i->image = ewl_engine_theme_image_add(emb);
                 if (!i->image)
                         DRETURN(DLEVEL_STABLE);
 
                 if (i->path)
-                        evas_object_image_file_set(i->image, i->path, i->key);
-                evas_object_image_size_get(i->image, &i->ow, &i->oh);
+                        ewl_engine_theme_image_file_set(emb, i->image, i->path,
+                                        i->key);
+
+                ewl_engine_theme_image_data_get(emb, i->image, &i->ow, &i->oh,
+                                EWL_IMAGE_DATA_SIZE);
         }
 
-        evas_object_smart_member_add(i->image, w->smart_object);
-        if (w->fx_clip_box)
-                evas_object_stack_below(i->image, w->fx_clip_box);
-
-        if (w->fx_clip_box)
-                evas_object_clip_set(i->image, w->fx_clip_box);
-
-        evas_object_pass_events_set(i->image, TRUE);
-        evas_object_show(i->image);
+        ewl_engine_theme_group_object_add(emb, w->smart_object, i->image);
+        ewl_engine_theme_object_show(emb, i->image);
 
         if (!i->ow)
                 i->ow = 1;
@@ -970,7 +1079,9 @@ ewl_image_cb_obscure(Ewl_Widget *w, void *ev_data __UNUSED__,
 
         i = EWL_IMAGE(w);
         if (emb && i->image) {
-                evas_object_image_file_set(i->image, NULL, NULL);
+                if (i->type != EWL_IMAGE_TYPE_EDJE)
+                        ewl_engine_theme_image_file_set(emb, i->image, NULL, 
+                                                        NULL);
                 ewl_embed_object_cache(emb, i->image);
                 i->image = NULL;
         }
@@ -1042,6 +1153,7 @@ ewl_image_cb_configure(Ewl_Widget *w, void *ev_data __UNUSED__,
                                                 void *user_data __UNUSED__)
 {
         Ewl_Image *i;
+        Ewl_Embed *emb;
         int ww, hh;
         int dx = 0, dy = 0;
 
@@ -1055,6 +1167,7 @@ ewl_image_cb_configure(Ewl_Widget *w, void *ev_data __UNUSED__,
 
         ww = CURRENT_W(w);
         hh = CURRENT_H(w);
+
         if (i->cs) {
                 /*
                  * Limit to the constraining size
@@ -1104,12 +1217,14 @@ ewl_image_cb_configure(Ewl_Widget *w, void *ev_data __UNUSED__,
         /*
          * Move the image into place based on type.
          */
+        emb = ewl_embed_widget_find(w);
         if (i->type != EWL_IMAGE_TYPE_EDJE)
-                evas_object_image_fill_set(i->image, i->tile.x, i->tile.y,
-                                        i->tile.w, i->tile.h);
+                ewl_engine_theme_image_fill_set(emb, i->image, i->tile.x,
+                                i->tile.y, i->tile.w, i->tile.h);
 
-        evas_object_move(i->image, CURRENT_X(w) + dx, CURRENT_Y(w) + dy);
-        evas_object_resize(i->image, ww, hh);
+        ewl_engine_theme_object_move(emb, i->image, CURRENT_X(w) + dx,
+                                                CURRENT_Y(w) + dy);
+        ewl_engine_theme_object_resize(emb, i->image, ww, hh);
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
 }
@@ -1136,104 +1251,6 @@ ewl_image_type_get(const char *i)
         DRETURN_INT(EWL_IMAGE_TYPE_NORMAL, DLEVEL_STABLE);
 }
 
-/**
- * @internal
- * @param w: The widget to work with
- * @param ev_data: The Ewl_Event_Mouse_Down data
- * @param user_data: UNUSED
- * @return Returns no value
- * @brief The mouse down callback
- */
-void
-ewl_image_cb_mouse_down(Ewl_Widget *w, void *ev_data,
-                                        void *user_data __UNUSED__)
-{
-        Ewl_Image *i;
-        Ewl_Embed *emb;
-        Ewl_Event_Mouse_Down *ev;
-
-        DENTER_FUNCTION(DLEVEL_STABLE);
-        DCHECK_PARAM_PTR(w);
-        DCHECK_TYPE(w, EWL_IMAGE_TYPE);
-
-        i = EWL_IMAGE(w);
-        emb = ewl_embed_widget_find(w);
-        ev = ev_data;
-
-        if (i->type == EWL_IMAGE_TYPE_EDJE)
-                evas_event_feed_mouse_down(emb->canvas, ev->button,
-                                EVAS_BUTTON_NONE,
-                                (unsigned int)((unsigned long long)(ecore_time_get() * 1000.0) & 0xffffffff),
-                                NULL);
-
-        DLEAVE_FUNCTION(DLEVEL_STABLE);
-}
-
-/**
- * @internal
- * @param w: The widget to work with
- * @param ev_data: The Ewl_Event_Mouse_Up data
- * @param user_data: UNUSED
- * @return Returns no value
- * @brief The mouse up callback
- */
-void
-ewl_image_cb_mouse_up(Ewl_Widget *w, void *ev_data,
-                                        void *user_data __UNUSED__)
-{
-        Ewl_Image *i;
-        Ewl_Embed *emb;
-        Ewl_Event_Mouse_Up *ev;
-
-        DENTER_FUNCTION(DLEVEL_STABLE);
-        DCHECK_PARAM_PTR(w);
-        DCHECK_TYPE(w, EWL_IMAGE_TYPE);
-
-        i = EWL_IMAGE(w);
-        emb = ewl_embed_widget_find(w);
-        ev = ev_data;
-
-        if (i->type == EWL_IMAGE_TYPE_EDJE && emb)
-                evas_event_feed_mouse_up(emb->canvas, ev->button,
-                                EVAS_BUTTON_NONE,
-                                (unsigned int)((unsigned long long)(ecore_time_get() * 1000.0) & 0xffffffff),
-                                NULL);
-
-        DLEAVE_FUNCTION(DLEVEL_STABLE);
-}
-
-/**
- * @internal
- * @param w: The widget to work with
- * @param ev_data: The Ewl_Event_Mouse_Move data
- * @param user_data: UNUSED
- * @return Returns no value
- * @brief The mouse move callback
- */
-void
-ewl_image_cb_mouse_move(Ewl_Widget *w, void *ev_data,
-                                        void *user_data __UNUSED__)
-{
-        Ewl_Image *i;
-        Ewl_Embed *emb;
-        Ewl_Event_Mouse *ev;
-
-        DENTER_FUNCTION(DLEVEL_STABLE);
-        DCHECK_PARAM_PTR(w);
-        DCHECK_TYPE(w, EWL_IMAGE_TYPE);
-
-        i = EWL_IMAGE(w);
-        emb = ewl_embed_widget_find(w);
-        ev = ev_data;
-
-        if (i->type == EWL_IMAGE_TYPE_EDJE)
-                evas_event_feed_mouse_move(emb->canvas, ev->x, ev->y,
-                                (unsigned int)((unsigned long long)(ecore_time_get() * 1000.0) & 0xffffffff),
-                                NULL);
-
-        DLEAVE_FUNCTION(DLEVEL_STABLE);
-}
-
 static void
 ewl_image_rotate_90(Ewl_Image *img, int cc)
 {
@@ -1245,8 +1262,7 @@ ewl_image_rotate_90(Ewl_Image *img, int cc)
         DCHECK_PARAM_PTR(img);
         DCHECK_TYPE(img, EWL_IMAGE_TYPE);
 
-        evas_object_image_size_get(img->image, &w, &h);
-        in = evas_object_image_data_get(img->image, FALSE);
+        in = ewl_image_data_get(img, &w, &h, EWL_IMAGE_DATA_READ);
 
         out = malloc(w * h * sizeof(unsigned int));
 
@@ -1289,9 +1305,9 @@ ewl_image_rotate_90(Ewl_Image *img, int cc)
         img->ow = ow;
         img->oh = oh;
 
-        evas_object_image_size_set(img->image, ow, oh);
-        evas_object_image_data_set(img->image, out);
-        evas_object_image_data_update_add(img->image, 0, 0, ow, oh);
+        /* XXX we should actually preserve the previous setting */
+        ewl_image_data_set(img, out, ow, oh, EWL_COLORSPACE_ARGB);
+        ewl_image_data_update_add(img, 0, 0, ow, oh);
 
         ewl_object_preferred_inner_size_set(EWL_OBJECT(img), ow, oh);
 
@@ -1308,8 +1324,7 @@ ewl_image_rotate_180(Ewl_Image *img)
         DCHECK_PARAM_PTR(img);
         DCHECK_TYPE(img, EWL_IMAGE_TYPE);
 
-        evas_object_image_size_get(img->image, &w, &h);
-        in = evas_object_image_data_get(img->image, TRUE);
+        in = ewl_image_data_get(img, &w, &h, EWL_IMAGE_DATA_WRITE);
 
         size = w * h / 2;
         for (i = 0; i < size; i++)
@@ -1325,8 +1340,9 @@ ewl_image_rotate_180(Ewl_Image *img)
                 in[i] = tmp;
         }
 
-        evas_object_image_data_set(img->image, in);
-        evas_object_image_data_update_add(img->image, 0, 0, w, h);
+        /* XXX we should actually preserve the previous setting */
+        ewl_image_data_set(img, in, w, h, EWL_COLORSPACE_ARGB);
+        ewl_image_data_update_add(img, 0, 0, w, h);
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
 }

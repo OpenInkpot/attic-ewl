@@ -135,6 +135,13 @@ unsigned int             ewl_image_constrain_get(Ewl_Image *i);
 void                     ewl_image_flip(Ewl_Image *img, Ewl_Orientation orient);
 void                     ewl_image_rotate(Ewl_Image *i, Ewl_Rotate rotate);
 
+void                    *ewl_image_data_get(Ewl_Image *i, int *w, int *h,
+                                                Ewl_Image_Data_Mode mode);
+unsigned int             ewl_image_data_set(Ewl_Image *i, void *data, int w,
+                                                int h, Ewl_Colorspace cs);
+void                     ewl_image_data_update_add(Ewl_Image *i, int x, int y,
+                                                int w, int h);
+
 Ewl_Widget              *ewl_image_thumbnail_get(Ewl_Image *i);
 
 Ewl_Widget              *ewl_image_thumbnail_new(void);
@@ -153,9 +160,6 @@ void                     ewl_image_thumbnail_request(Ewl_Image_Thumbnail *thumb,
 void ewl_image_cb_reveal(Ewl_Widget *w, void *ev_data, void *user_data);
 void ewl_image_cb_obscure(Ewl_Widget *w, void *ev_data, void *user_data);
 void ewl_image_cb_configure(Ewl_Widget *w, void *ev_data, void *user_data);
-void ewl_image_cb_mouse_down(Ewl_Widget *w, void *ev_data, void *user_data);
-void ewl_image_cb_mouse_up(Ewl_Widget *w, void *ev_data, void *user_data);
-void ewl_image_cb_mouse_move(Ewl_Widget *w, void *ev_data, void *user_data);
 void ewl_image_cb_destroy(Ewl_Widget *w, void *ev_data, void *user_data );
 
 /**

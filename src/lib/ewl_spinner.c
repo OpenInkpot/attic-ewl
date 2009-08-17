@@ -1,7 +1,6 @@
 /* vim: set sw=8 ts=8 sts=8 expandtab: */
 #include <Ecore_Str.h>
 #include <math.h>
-#include <langinfo.h>
 
 #include "ewl_base.h"
 #include "ewl_spinner.h"
@@ -10,7 +9,14 @@
 #include "ewl_entry.h"
 #include "ewl_private.h"
 #include "ewl_macros.h"
+#if HAVE_LANGINFO_H
+# include <langinfo.h>
+#endif /* HAVE_LANGINFO_H */
 #include "ewl_debug.h"
+
+#ifdef HAVE_EVIL
+# include <Evil.h>
+#endif /* HAVE_EVIL */
 
 static void ewl_spinner_entry_update(Ewl_Spinner *s);
 static int ewl_spinner_timer(void *data);
@@ -74,10 +80,6 @@ ewl_spinner_init(Ewl_Spinner *s)
                                 ewl_spinner_cb_value_changed, NULL);
         ewl_callback_prepend(w, EWL_CALLBACK_DESTROY,
                                 ewl_spinner_cb_destroy, NULL);
-        ewl_callback_append(w, EWL_CALLBACK_FOCUS_IN,
-                                ewl_container_cb_widget_focus_in, NULL);
-        ewl_callback_append(w, EWL_CALLBACK_FOCUS_OUT,
-                                ewl_container_cb_widget_focus_out, NULL);
         ewl_container_show_notify_set(EWL_CONTAINER(w),
                                 ewl_spinner_cb_child_show);
         ewl_container_resize_notify_set(EWL_CONTAINER(w),
@@ -107,7 +109,7 @@ ewl_spinner_init(Ewl_Spinner *s)
         ewl_container_child_append(EWL_CONTAINER(s), s->vbox);
         ewl_widget_appearance_set(s->vbox, "controls");
         ewl_widget_internal_set(s->vbox, TRUE);
-        ewl_object_fill_policy_set(EWL_OBJECT(s->vbox), EWL_FLAG_FILL_NONE);
+        ewl_object_fill_policy_set(EWL_OBJECT(s->vbox), EWL_FLAG_FILL_VFILL);
         ewl_widget_show(s->vbox);
 
         s->increment = ewl_button_new();
@@ -116,7 +118,7 @@ ewl_spinner_init(Ewl_Spinner *s)
                                         EWL_FLAG_ALIGN_CENTER);
         ewl_widget_appearance_set(s->increment, "increment");
         ewl_object_fill_policy_set(EWL_OBJECT(s->increment),
-                                   EWL_FLAG_FILL_NONE);
+                                   EWL_FLAG_FILL_VFILL);
         ewl_widget_internal_set(s->increment, TRUE);
         ewl_callback_append(s->increment, EWL_CALLBACK_MOUSE_DOWN,
                                 ewl_spinner_cb_increase_value, w);
@@ -132,7 +134,7 @@ ewl_spinner_init(Ewl_Spinner *s)
                                         EWL_FLAG_ALIGN_CENTER);
         ewl_widget_appearance_set(s->decrement, "decrement");
         ewl_object_fill_policy_set(EWL_OBJECT(s->decrement),
-                                   EWL_FLAG_FILL_NONE);
+                                   EWL_FLAG_FILL_VFILL);
         ewl_widget_internal_set(s->decrement, TRUE);
         ewl_callback_append(s->decrement, EWL_CALLBACK_MOUSE_DOWN,
                                 ewl_spinner_cb_decrease_value, w);

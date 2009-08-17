@@ -650,7 +650,7 @@ ewl_text_fmt_char_to_byte(Ewl_Text_Fmt *fmt,
 
                 if (!node)
                 {
-                        node = ecore_dlist_first_goto(fmt->nodes);
+                        ecore_dlist_first_goto(fmt->nodes);
                         fmt->current_node.char_idx = 0;
                         fmt->current_node.byte_idx = 0;
                 }
@@ -1003,7 +1003,7 @@ ewl_text_fmt_apply(Ewl_Text_Fmt *fmt, unsigned int context_mask,
         }
 
         /* Reset to the original cursor index */
-        if (!node) node = ecore_dlist_last_goto(fmt->nodes);
+        if (!node) ecore_dlist_last_goto(fmt->nodes);
         ewl_text_fmt_goto(fmt, cursor_idx);
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);

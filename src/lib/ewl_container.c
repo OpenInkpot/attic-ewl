@@ -4,8 +4,6 @@
 #include "ewl_private.h"
 #include "ewl_debug.h"
 
-#include <Evas.h>
-
 static void ewl_container_child_insert_helper(Ewl_Container *pc,
                                                 Ewl_Widget *child,
                                                 int index,
@@ -65,6 +63,7 @@ ewl_container_init(Ewl_Container *c)
 
         ewl_widget_inherit(w, EWL_CONTAINER_TYPE);
         ewl_widget_recursive_set(w, TRUE);
+        ewl_widget_visible_add(w, EWL_FLAG_VISIBLE_SMARTOBJ);
 
         /*
          * Initialize the fields specific to the container class.
@@ -73,26 +72,20 @@ ewl_container_init(Ewl_Container *c)
 
         /*
          * All containers need to perform the function of updating the
-         * children with necessary window and evas information.
+         * children with necessary window and canvas information.
          */
         ewl_callback_append(w, EWL_CALLBACK_CONFIGURE,
                             ewl_container_cb_configure, NULL);
         ewl_callback_append(w, EWL_CALLBACK_OBSCURE,
                             ewl_container_cb_obscure, NULL);
-        ewl_callback_append(w, EWL_CALLBACK_REVEAL,
-                            ewl_container_cb_reveal, NULL);
-        ewl_callback_append(w, EWL_CALLBACK_REALIZE,
-                            ewl_container_cb_reveal, NULL);
         ewl_callback_append(w, EWL_CALLBACK_REALIZE,
                             ewl_container_cb_realize, NULL);
         ewl_callback_append(w, EWL_CALLBACK_UNREALIZE,
                             ewl_container_cb_unrealize, NULL);
         ewl_callback_append(w, EWL_CALLBACK_REPARENT,
                             ewl_container_cb_reparent, NULL);
-        ewl_callback_append(w, EWL_CALLBACK_WIDGET_ENABLE,
-                            ewl_container_cb_enable, NULL);
-        ewl_callback_append(w, EWL_CALLBACK_WIDGET_DISABLE,
-                            ewl_container_cb_disable, NULL);
+        ewl_callback_append(w, EWL_CALLBACK_STATE_CHANGED,
+                            ewl_container_cb_state_change, NULL);
 
         DRETURN_INT(TRUE, DLEVEL_STABLE);
 }
@@ -1197,12 +1190,6 @@ ewl_container_child_show_call(Ewl_Container *c, Ewl_Widget *w)
         if (c->child_show)
                 c->child_show(c, w);
 
-        /*
-         * Only show it if there are visible children.
-         */
-        if (c->clip_box)
-                evas_object_show(c->clip_box);
-
         ewl_widget_configure(EWL_WIDGET(c));
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
@@ -1246,13 +1233,6 @@ ewl_container_child_hide_call(Ewl_Container *c, Ewl_Widget *w)
 
         if (c->child_hide)
                 c->child_hide(c, w);
-
-        if (c->clip_box) {
-                const Eina_List *clippees;
-                clippees = evas_object_clipees_get(c->clip_box);
-                if (!clippees)
-                        evas_object_hide(c->clip_box);
-        }
 
         ewl_widget_configure(EWL_WIDGET(c));
 
@@ -1359,7 +1339,7 @@ ewl_container_redirect_set(Ewl_Container *c, Ewl_Container *rc)
  * @param user_data: UNUSED
  * @return Returns no value
  * @brief When reparenting a container, it's children need the updated
- * information about the container, such as the evas.
+ * information about the container, such as the canvas.
  */
 void
 ewl_container_cb_reparent(Ewl_Widget *w, void *ev_data __UNUSED__,
@@ -1391,59 +1371,64 @@ ewl_container_cb_reparent(Ewl_Widget *w, void *ev_data __UNUSED__,
  * @param ev_data: UNUSED
  * @param user_data: UNUSED
  * @return Returns no value
- * @brief When enabling a container, pass the signal to the children.
+ * @brief When changing the state of a container pass it to the (internal) children
  */
 void
-ewl_container_cb_enable(Ewl_Widget *w, void *ev_data __UNUSED__,
+ewl_container_cb_state_change(Ewl_Widget *w, void *ev_data,
                                                 void *user_data __UNUSED__)
 {
         Ewl_Widget *child;
+        Ewl_Event_State_Change *ev;
 
         DENTER_FUNCTION(DLEVEL_STABLE);
         DCHECK_PARAM_PTR(w);
+        DCHECK_PARAM_PTR(ev_data);
         DCHECK_TYPE(w, EWL_CONTAINER_TYPE);
+
+        ev = ev_data;
 
         if (!EWL_CONTAINER(w)->children)
                 DRETURN(DLEVEL_STABLE);
 
+        if (ev->custom_state)
+                DRETURN(DLEVEL_STABLE);
+
         /*
-         * Enable all of the containers children
+         * we treat the disable states special here because they are also
+         * propagated to non internal children
          */
         ecore_dlist_first_goto(EWL_CONTAINER(w)->children);
-        while ((child = ecore_dlist_next(EWL_CONTAINER(w)->children)) != NULL) {
-                ewl_widget_enable(child);
+        if (ev->normal.state_add == EWL_STATE_DISABLED)
+        {
+                while ((child = ecore_dlist_next(EWL_CONTAINER(w)->children))) 
+                        ewl_widget_inherited_state_add(child, 
+                                                        EWL_STATE_DISABLED);
         }
-
-        DLEAVE_FUNCTION(DLEVEL_STABLE);
-}
-
-/**
- * @internal
- * @param w: The widget to work with
- * @param ev_data: UNUSED
- * @param user_data: UNUSED
- * @return Returns no value
- * @brief When enabling a container, pass the signal to the children.
- */
-void
-ewl_container_cb_disable(Ewl_Widget *w, void *ev_data __UNUSED__,
-                                                void *user_data __UNUSED__)
-{
-        Ewl_Widget *child;
-
-        DENTER_FUNCTION(DLEVEL_STABLE);
-        DCHECK_PARAM_PTR(w);
-        DCHECK_TYPE(w, EWL_CONTAINER_TYPE);
-
-        if (!EWL_CONTAINER(w)->children)
-                DRETURN(DLEVEL_STABLE);
-
-        /*
-         * Disable all of the containers children
-         */
-        ecore_dlist_first_goto(EWL_CONTAINER(w)->children);
-        while ((child = ecore_dlist_next(EWL_CONTAINER(w)->children)) != NULL) {
-                ewl_widget_disable(child);
+        else if (ev->normal.state_remove == EWL_STATE_DISABLED)
+        {
+                while ((child = ecore_dlist_next(EWL_CONTAINER(w)->children))) 
+                        ewl_widget_inherited_state_remove(child,
+                                                        EWL_STATE_DISABLED);
+        }
+        else if (!ev->normal.state_remove)
+        {
+                while ((child = ecore_dlist_next(EWL_CONTAINER(w)->children))) 
+                {
+                        if (!ewl_widget_internal_is(child))
+                                continue;
+                        ewl_widget_inherited_state_add(child,
+                                                        ev->normal.state_add);
+                }
+        }
+        else
+        {
+                while ((child = ecore_dlist_next(EWL_CONTAINER(w)->children))) 
+                {
+                        if (!ewl_widget_internal_is(child))
+                                continue;
+                        ewl_widget_inherited_state_remove(child,
+                                                ev->normal.state_remove);
+                }
         }
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
@@ -1461,7 +1446,6 @@ void
 ewl_container_cb_obscure(Ewl_Widget *w, void *ev_data __UNUSED__,
                          void *user_data __UNUSED__)
 {
-        Ewl_Embed *e;
         Ewl_Container *c;
 
         DENTER_FUNCTION(DLEVEL_STABLE);
@@ -1469,15 +1453,6 @@ ewl_container_cb_obscure(Ewl_Widget *w, void *ev_data __UNUSED__,
         DCHECK_TYPE(w, EWL_CONTAINER_TYPE);
 
         c = EWL_CONTAINER(w);
-
-        /*
-         * Give up the clip box object in use.
-         */
-        e = ewl_embed_widget_find(EWL_WIDGET(w));
-        if (e && c->clip_box) {
-                ewl_embed_object_cache(e, c->clip_box);
-                c->clip_box = NULL;
-        }
 
         /*
          * Notify children that they are now obscured, they will not receive a
@@ -1495,56 +1470,6 @@ ewl_container_cb_obscure(Ewl_Widget *w, void *ev_data __UNUSED__,
         DLEAVE_FUNCTION(DLEVEL_STABLE);
 }
 
-/**
- * @internal
- * @param w: The widget to work with
- * @param ev_data: UNUSED
- * @param user_data: UNUSED
- * @return Returns no value
- * @brief Callback for when the container is revealed
- */
-void
-ewl_container_cb_reveal(Ewl_Widget *w, void *ev_data __UNUSED__,
-                        void *user_data __UNUSED__)
-{
-        Ewl_Embed *e;
-        Ewl_Container *c;
-
-        DENTER_FUNCTION(DLEVEL_STABLE);
-        DCHECK_PARAM_PTR(w);
-        DCHECK_TYPE(w, EWL_CONTAINER_TYPE);
-
-        c = EWL_CONTAINER(w);
-
-        /*
-         * Create the clip box for this container, this keeps children clipped
-         * to the wanted area.
-         */
-        e = ewl_embed_widget_find(EWL_WIDGET(w));
-        if (e && !c->clip_box)
-        {
-                c->clip_box = ewl_embed_object_request(e, "rectangle");
-                if (!c->clip_box)
-                        c->clip_box = evas_object_rectangle_add(e->canvas);
-        }
-
-        /*
-         * Setup the remaining properties for the clip box.
-         */
-        if (c->clip_box) {
-                evas_object_pass_events_set(c->clip_box, TRUE);
-                evas_object_smart_member_add(c->clip_box, w->smart_object);
-
-                if (w->fx_clip_box) {
-                        evas_object_clip_set(c->clip_box, w->fx_clip_box);
-                        evas_object_stack_below(c->clip_box, w->fx_clip_box);
-                }
-
-                evas_object_color_set(c->clip_box, 255, 255, 255, 255);
-        }
-
-        DLEAVE_FUNCTION(DLEVEL_STABLE);
-}
 
 /**
  * @internal
@@ -1576,7 +1501,7 @@ ewl_container_cb_realize(Ewl_Widget *w, void *ev_data __UNUSED__,
         /*
          * If this container has not yet been realized, then it's children
          * haven't either. So we call ewl_widget_reparent to get each child
-         * to update it's evas related fields to the new information, and then
+         * to update it's canvas related fields to the new information, and then
          * realize any of them that should be visible.
          */
         while ((child = ecore_dlist_index_goto(c->children, i))) {
@@ -1606,17 +1531,6 @@ ewl_container_cb_configure(Ewl_Widget *w, void *ev_data __UNUSED__,
         DCHECK_PARAM_PTR(w);
         DCHECK_TYPE(w, EWL_CONTAINER_TYPE);
 
-        if (EWL_CONTAINER(w)->clip_box) {
-                /*
-                 * Move the clip box into the new position and size of the
-                 * container.
-                 */
-                evas_object_move(EWL_CONTAINER(w)->clip_box,
-                          CURRENT_X(w), CURRENT_Y(w));
-                evas_object_resize(EWL_CONTAINER(w)->clip_box,
-                            CURRENT_W(w), CURRENT_H(w));
-        }
-
         DLEAVE_FUNCTION(DLEVEL_STABLE);
 }
 
@@ -1640,14 +1554,6 @@ ewl_container_cb_unrealize(Ewl_Widget *w, void *ev_data __UNUSED__,
         DCHECK_TYPE(w, EWL_CONTAINER_TYPE);
 
         c = EWL_CONTAINER(w);
-
-        /*
-         * Clean up the clip box of the container.
-         */
-        if (c->clip_box) {
-                ewl_canvas_object_destroy(c->clip_box);
-                c->clip_box = NULL;
-        }
 
         /*
          * FIXME: If called from a destroy callback, the child list may not
@@ -1689,69 +1595,10 @@ ewl_container_cb_container_focus_out(Ewl_Widget *w, void *ev_data,
         /* If its a child or is disabled then don't send a signal */
         if ((focus_in) && (!ewl_widget_parent_of(w, focus_in)) &&
                                 (!DISABLED(w)) && (focus_in != w))
-                ewl_widget_state_set(w, "focus,out", EWL_STATE_TRANSIENT);
-
-        DLEAVE_FUNCTION(DLEVEL_STABLE);
-}
-
-/**
- * @internal
- * @param w: The widget to work with
- * @param: ev_data: UNUSED
- * @param user_data: UNUSED
- * @return Returns no value
- * @brief A callback to be used with end widgets such as buttons, etc
- */
-void
-ewl_container_cb_widget_focus_out(Ewl_Widget *w, void *ev_data __UNUSED__, 
-                                        void *user_data __UNUSED__)
-{
-        Ewl_Container *c;
-
-        DENTER_FUNCTION(DLEVEL_STABLE);
-        DCHECK_PARAM_PTR(w);
-
-        if (DISABLED(w))
-                DRETURN(DLEVEL_STABLE);
-
-        c = EWL_CONTAINER(w);
-        while (c->redirect)
-                c = c->redirect;
-
-        ecore_dlist_first_goto(c->children);
-        while ((w = ecore_dlist_next(c->children)))
-                ewl_widget_state_set(w, "focus,out", EWL_STATE_TRANSIENT);
-
-        DLEAVE_FUNCTION(DLEVEL_STABLE);
-}
-
-/**
- * @internal
- * @param w: The widget to work with
- * @param ev_data: UNUSED
- * @param user_data: UNUSED
- * @return Returns no value
- * @brief A callback to be used with end widgets
- */
-void
-ewl_container_cb_widget_focus_in(Ewl_Widget *w, void *ev_data __UNUSED__, 
-                                 void *user_data __UNUSED__)
-{
-        Ewl_Container *c;
-
-        DENTER_FUNCTION(DLEVEL_STABLE);
-        DCHECK_PARAM_PTR(w);
-
-        if (DISABLED(w))
-                DRETURN(DLEVEL_STABLE);
-
-        c = EWL_CONTAINER(w);
-        while (c->redirect)
-                c = c->redirect;
-
-        ecore_dlist_first_goto(c->children);
-        while ((w = ecore_dlist_next(c->children)))
-                ewl_widget_state_set(w, "focus,in", EWL_STATE_TRANSIENT);
+        {
+                /* XXX is this correct? */
+                ewl_widget_state_remove(w, EWL_STATE_FOCUSED);
+        }
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
 }

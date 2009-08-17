@@ -64,8 +64,8 @@ ewl_combo_init(Ewl_Combo *combo)
         combo->button = ewl_button_new();
         ewl_container_child_append(EWL_CONTAINER(combo), combo->button);
         ewl_widget_internal_set(combo->button, TRUE);
-        ewl_object_alignment_set(EWL_OBJECT(combo->button),
-                                        EWL_FLAG_ALIGN_RIGHT);
+        ewl_object_fill_policy_set(EWL_OBJECT(combo->button),
+                                        EWL_FLAG_FILL_VFILL);
         ewl_callback_append(combo->button, EWL_CALLBACK_CLICKED,
                                 ewl_combo_cb_decrement_clicked, combo);
         ewl_widget_show(combo->button);
@@ -115,8 +115,11 @@ ewl_combo_editable_set(Ewl_Combo *combo, unsigned int editable)
 
         combo->editable = !!editable;
 
-        /* force the selected display to change */
-        ewl_combo_cb_selected_change(EWL_MVC(combo));
+        if (combo->editable)
+                ewl_widget_appearance_set(EWL_WIDGET(combo), 
+                                "editable/"EWL_COMBO_TYPE);
+        else
+                ewl_widget_appearance_set(EWL_WIDGET(combo), EWL_COMBO_TYPE);
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
 }
@@ -255,10 +258,7 @@ ewl_combo_cb_decrement_clicked(Ewl_Widget *w __UNUSED__, void *ev __UNUSED__,
         ewl_window_raise(EWL_WINDOW(combo->popup));
         ewl_widget_focus_send(EWL_WIDGET(combo->popup));
 
-        ewl_widget_state_set(combo->button, "expanded",
-                                        EWL_STATE_PERSISTENT);
-        ewl_widget_state_set(EWL_WIDGET(combo), "expanded",
-                                        EWL_STATE_PERSISTENT);
+        ewl_widget_state_add(EWL_WIDGET(combo), EWL_STATE_ON);
 
         if (!ewl_mvc_dirty_get(EWL_MVC(combo)))
                 DRETURN(DLEVEL_STABLE);
@@ -291,9 +291,7 @@ ewl_combo_cb_popup_hide(Ewl_Widget *w __UNUSED__,
         DCHECK_TYPE(data, EWL_COMBO_TYPE);
 
         combo = EWL_COMBO(data);
-        ewl_widget_state_set(combo->button, "collapsed", EWL_STATE_PERSISTENT);
-        ewl_widget_state_set(EWL_WIDGET(combo), "collapsed",
-                                        EWL_STATE_PERSISTENT);
+        ewl_widget_state_remove(EWL_WIDGET(combo), EWL_STATE_ON);
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
 }
@@ -478,10 +476,14 @@ ewl_combo_popup_fill(Ewl_Combo *combo, Ewl_Container *c, const Ewl_Model *model,
                 ewl_container_child_append(c, o);
                 ewl_widget_show(o);
 
-                if (view->fetch && model->fetch)
+                if (view->constructor && model->fetch && view->assign)
                 {
-                        item = view->fetch(model->fetch(mvc_data, i, 0), i, 0,
-                                ewl_mvc_private_data_get(EWL_MVC(combo)));
+                        void *pr_data;
+
+                        pr_data = ewl_mvc_private_data_get(EWL_MVC(combo));
+                        item = view->constructor(0, pr_data);
+                        view->assign(item, model->fetch(mvc_data, i, 0), i, 0,
+                                pr_data);
                         ewl_container_child_append(EWL_CONTAINER(o), item);
                         ewl_widget_show(item);
                 }

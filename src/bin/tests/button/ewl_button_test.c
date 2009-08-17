@@ -2,6 +2,7 @@
 #include "Ewl_Test.h"
 #include "ewl_test_private.h"
 #include "ewl_button.h"
+#include "ewl_togglebutton.h"
 #include "ewl_checkbutton.h"
 #include "ewl_radiobutton.h"
 #include "ewl_separator.h"
@@ -36,6 +37,7 @@ create_test(Ewl_Container *box)
         Ewl_Widget *button[3];
         Ewl_Widget *check_button[4];
         Ewl_Widget *radio_button[3];
+        Ewl_Widget *w;
 
         /*
          * Pack the button tests horizontally.
@@ -77,6 +79,53 @@ create_test(Ewl_Container *box)
         ewl_button_label_set(EWL_BUTTON(button[2]), "Disabled");
         ewl_widget_disable(button[2]);
         ewl_widget_show(button[2]);
+        
+        /*
+         * Add a separator between the classic buttons and the check buttons.
+         */
+        separator[0] = ewl_vseparator_new();
+        ewl_container_child_append(EWL_CONTAINER(hbox), separator[0]);
+        ewl_widget_show(separator[0]);
+        
+        /*
+         * Use a vertical box for the buttons in a test area.
+         */
+        vbox = ewl_vbox_new();
+        ewl_container_child_append(EWL_CONTAINER(hbox), vbox);
+        ewl_widget_show(vbox);
+
+        /*
+         * Create a button to be displayed witha label.
+         */
+        w = ewl_togglebutton_new();
+        ewl_button_label_set(EWL_BUTTON(w), "With Label");
+        ewl_container_child_append(EWL_CONTAINER(vbox), w);
+        ewl_widget_show(w);
+
+        /*
+         * Create a button to be displayed with a label and checked
+         */
+        w = ewl_togglebutton_new();
+        ewl_button_label_set(EWL_BUTTON(w), "With Label and Checked");
+        ewl_togglebutton_checked_set(EWL_TOGGLEBUTTON(w), TRUE);
+        ewl_container_child_append(EWL_CONTAINER(vbox), w);
+        ewl_widget_show(w);
+
+        /*
+         * Create a button that does not contain a label
+         */
+        w = ewl_togglebutton_new();
+        ewl_container_child_append(EWL_CONTAINER(vbox), w);
+        ewl_widget_show(w);
+
+        /*
+         * Create a button that's disabled
+         */
+        w = ewl_togglebutton_new();
+        ewl_container_child_append(EWL_CONTAINER(vbox), w);
+        ewl_button_label_set(EWL_BUTTON(w), "Disabled");
+        ewl_widget_disable(w);
+        ewl_widget_show(w);
 
         /*
          * Add a separator between the classic buttons and the check buttons.
@@ -106,7 +155,7 @@ create_test(Ewl_Container *box)
         check_button[1]  = ewl_checkbutton_new();
         ewl_button_label_set(EWL_BUTTON(check_button[1] ), 
                                                 "With Label and checked");
-        ewl_checkbutton_checked_set(EWL_CHECKBUTTON(check_button[1]), TRUE);
+        ewl_togglebutton_checked_set(EWL_TOGGLEBUTTON(check_button[1]), TRUE);
         ewl_container_child_append(EWL_CONTAINER(vbox), check_button[1]);
         ewl_widget_show(check_button[1]);
 
@@ -122,7 +171,7 @@ create_test(Ewl_Container *box)
          */
         check_button[3]  = ewl_checkbutton_new();
         ewl_button_label_set(EWL_BUTTON(check_button[3] ), "Disabled");
-        ewl_checkbutton_checked_set(EWL_CHECKBUTTON(check_button[3]), TRUE);
+        ewl_togglebutton_checked_set(EWL_TOGGLEBUTTON(check_button[3]), TRUE);
         ewl_container_child_append(EWL_CONTAINER(vbox), check_button[3]);
         ewl_widget_disable(check_button[3]);
         ewl_widget_show(check_button[3]);
@@ -146,7 +195,7 @@ create_test(Ewl_Container *box)
          */
         radio_button[0]  = ewl_radiobutton_new();
         ewl_button_label_set(EWL_BUTTON(radio_button[0] ), "With Label");
-        ewl_checkbutton_checked_set(EWL_CHECKBUTTON(radio_button[0]), TRUE);
+        ewl_togglebutton_checked_set(EWL_TOGGLEBUTTON(radio_button[0]), TRUE);
         ewl_container_child_append(EWL_CONTAINER(vbox), radio_button[0]);
         ewl_widget_show(radio_button[0]);
 
@@ -158,7 +207,7 @@ create_test(Ewl_Container *box)
 
         radio_button[2]  = ewl_radiobutton_new();
         ewl_button_label_set(EWL_BUTTON(radio_button[2] ), "Disabled");
-        ewl_checkbutton_checked_set(EWL_CHECKBUTTON(radio_button[2]), TRUE);
+        ewl_togglebutton_checked_set(EWL_TOGGLEBUTTON(radio_button[2]), TRUE);
         ewl_container_child_append(EWL_CONTAINER(vbox), radio_button[2]);
         ewl_widget_disable(radio_button[2]);
         ewl_widget_show(radio_button[2]);

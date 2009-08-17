@@ -5,6 +5,8 @@
 #include "ewl_macros.h"
 #include <xcb/xcb.h>
 
+#include <xcb/xcb.h>
+
 static void ee_canvas_setup(Ewl_Window *win, int debug);
 static int ee_init(Ewl_Engine *engine);
 static void ee_shutdown(Ewl_Engine *engine);
@@ -128,7 +130,7 @@ ee_canvas_setup(Ewl_Window *win, int debug)
 
         sinfo = (Evas_Engine_Info_Software_X11 *)info;
 
-        sinfo->info.backend = 1;
+        sinfo->info.backend = EVAS_ENGINE_INFO_SOFTWARE_X11_BACKEND_XCB;
         sinfo->info.connection = ecore_x_connection_get();
         sinfo->info.screen = ecore_x_default_screen_get();
         sinfo->info.visual = visualtype_get(sinfo->info.connection,

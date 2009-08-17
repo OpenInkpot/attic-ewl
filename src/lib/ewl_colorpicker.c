@@ -9,6 +9,7 @@
 #include "ewl_macros.h"
 #include "ewl_private.h"
 #include "ewl_debug.h"
+#include "ewl_intl.h"
 
 static void ewl_colorpicker_display_update(Ewl_Colorpicker *cp, unsigned int r,
                                 unsigned int g, unsigned int b, double h,
@@ -154,7 +155,7 @@ ewl_colorpicker_init(Ewl_Colorpicker *cp)
         ewl_spectrum_rgb_set(EWL_SPECTRUM(o), r, g, b);
         ewl_object_minimum_size_set(EWL_OBJECT(o), 150, 150);
         ewl_object_fill_policy_set(EWL_OBJECT(o), EWL_FLAG_FILL_FILL);
-        ewl_object_padding_set(EWL_OBJECT(o), 2, 2, 2, 2);
+        ewl_object_padding_type_set(EWL_OBJECT(o), EWL_PADDING_SMALL);
         ewl_callback_append(o, EWL_CALLBACK_VALUE_CHANGED,
                                 ewl_colorpicker_cb_square_change, cp);
         cp->picker.square = o;
@@ -168,7 +169,7 @@ ewl_colorpicker_init(Ewl_Colorpicker *cp)
         /* XXX this shouldn't be hard coded */
         ewl_object_minimum_size_set(EWL_OBJECT(o), 15, 150);
         ewl_object_maximum_size_set(EWL_OBJECT(o), 15, EWL_OBJECT_MAX_SIZE);
-        ewl_object_padding_set(EWL_OBJECT(o), 2, 2, 2, 2);
+        ewl_object_padding_type_set(EWL_OBJECT(o), EWL_PADDING_SMALL);
         ewl_callback_append(o, EWL_CALLBACK_VALUE_CHANGED,
                                 ewl_colorpicker_cb_vertical_change, cp);
         cp->picker.vertical = o;
@@ -189,17 +190,16 @@ ewl_colorpicker_init(Ewl_Colorpicker *cp)
 
         o = ewl_label_new();
         ewl_widget_internal_set(o, TRUE);
-        ewl_label_text_set(EWL_LABEL(o), "Current:");
+        ewl_label_text_set(EWL_LABEL(o), SD_("COLOR|Current:"));
         ewl_container_child_append(EWL_CONTAINER(hbox), o);
         ewl_widget_show(o);
 
-        o = NEW(Ewl_Widget, 1);
-        ewl_widget_init(o);
+        o = ewl_widget_new();
         ewl_widget_internal_set(o, TRUE);
-        ewl_widget_appearance_set(o, "coloured_rect");
+        ewl_widget_appearance_set(o, "rectangle");
         ewl_container_child_append(EWL_CONTAINER(hbox), o);
         ewl_widget_color_set(o, r, g, b, 255);
-        ewl_object_padding_set(EWL_OBJECT(o), 2, 2, 2, 2);
+        ewl_object_padding_type_set(EWL_OBJECT(o), EWL_PADDING_SMALL);
         ewl_object_minimum_h_set(EWL_OBJECT(o), 20);
         ewl_object_fill_policy_set(EWL_OBJECT(o),
                                 EWL_FLAG_FILL_HFILL | EWL_FLAG_FILL_VSHRINKABLE);
@@ -208,17 +208,16 @@ ewl_colorpicker_init(Ewl_Colorpicker *cp)
 
         o = ewl_label_new();
         ewl_widget_internal_set(o, TRUE);
-        ewl_label_text_set(EWL_LABEL(o), "Previous:");
+        ewl_label_text_set(EWL_LABEL(o), SD_("COLOR|Previous:"));
         ewl_container_child_append(EWL_CONTAINER(hbox), o);
         ewl_widget_show(o);
 
-        o = NEW(Ewl_Widget, 1);
-        ewl_widget_init(o);
+        o = ewl_widget_new();
         ewl_widget_internal_set(o, TRUE);
-        ewl_widget_appearance_set(o, "coloured_rect");
+        ewl_widget_appearance_set(o, "rectangle");
         ewl_container_child_append(EWL_CONTAINER(hbox), o);
         ewl_widget_color_set(o, r, g, b, 255);
-        ewl_object_padding_set(EWL_OBJECT(o), 2, 2, 2, 2);
+        ewl_object_padding_type_set(EWL_OBJECT(o), EWL_PADDING_SMALL);
         ewl_object_minimum_h_set(EWL_OBJECT(o), 20);
         ewl_object_fill_policy_set(EWL_OBJECT(o),
                                 EWL_FLAG_FILL_HFILL | EWL_FLAG_FILL_VSHRINKABLE);
@@ -246,16 +245,15 @@ ewl_colorpicker_init(Ewl_Colorpicker *cp)
                 o = ewl_colorpicker_radiobutton_new();
                 ewl_widget_internal_set(o, TRUE);
                 ewl_button_label_set(EWL_BUTTON(o), modes[i].name);
-                if (!prev)
-                        ewl_checkbutton_checked_set(EWL_CHECKBUTTON(o), TRUE);
-                else
-                        ewl_checkbutton_checked_set(EWL_CHECKBUTTON(o), FALSE);
+                ewl_togglebutton_checked_set(EWL_TOGGLEBUTTON(o), !prev);
 
                 ewl_container_child_append(EWL_CONTAINER(grid), o);
                 ewl_colorpicker_radiobutton_mode_set(EWL_COLORPICKER_RADIOBUTTON(o),
                                                                         modes[i].mode);
                 if (prev)
-                        ewl_radiobutton_chain_set(EWL_RADIOBUTTON(o), EWL_RADIOBUTTON(prev));
+                        ewl_radiobutton_chain_set(EWL_RADIOBUTTON(o),
+                                                        EWL_RADIOBUTTON(prev));
+
                 ewl_callback_append(o, EWL_CALLBACK_VALUE_CHANGED,
                                 ewl_colorpicker_cb_radio_change, cp);
                 prev = o;

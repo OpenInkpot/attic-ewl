@@ -30,7 +30,10 @@ static void *list_test_data_setup(void);
 static void list_cb_value_changed(Ewl_Widget *w, void *ev, void *data);
 static void list_cb_multi_value_changed(Ewl_Widget *w, void *ev, void *data);
 
-static Ewl_Widget *list_test_cb_widget_fetch(void *data, unsigned int row,
+static Ewl_Widget *list_test_cb_widget_fetch(unsigned int col,
+                                                void *pr_data);
+static void list_test_cb_widget_assign(Ewl_Widget *w, void *data,
+                                                unsigned int row,
                                                 unsigned int col,
                                                 void *pr_data);
 static void *list_test_data_fetch(void *data, unsigned int row,
@@ -58,7 +61,9 @@ create_test(Ewl_Container *box)
         Ewl_View *view;
         void *data;
 
-        /* create a list using an ecore_list of strings of labels */
+        model = ewl_model_ecore_list_instance();
+        view = ewl_label_view_get();
+
         o = ewl_border_new();
         ewl_border_label_set(EWL_BORDER(o), "Label List (single select)");
         ewl_object_fill_policy_set(EWL_OBJECT(o), EWL_FLAG_FILL_HFILL);
@@ -70,9 +75,6 @@ create_test(Ewl_Container *box)
         ecore_list_append(str_data, "second");
         ecore_list_append(str_data, "third");
         ecore_list_append(str_data, "fourth");
-
-        model = ewl_model_ecore_list_instance();
-        view = ewl_label_view_get();
 
         list = ewl_list_new();
         ewl_container_child_append(EWL_CONTAINER(o), list);
@@ -114,7 +116,8 @@ create_test(Ewl_Container *box)
         ewl_model_data_count_set(model, list_test_data_count_get);
 
         view = ewl_view_new();
-        ewl_view_widget_fetch_set(view, list_test_cb_widget_fetch);
+        ewl_view_widget_constructor_set(view, list_test_cb_widget_fetch);
+        ewl_view_widget_assign_set(view, list_test_cb_widget_assign);
         ewl_view_header_fetch_set(view, NULL);
 
         data = list_test_data_setup();
@@ -142,15 +145,15 @@ list_test_data_setup(void)
         data->rows = calloc(3, sizeof(List_Test_Row_Data *));
 
         data->rows[0] = calloc(1, sizeof(List_Test_Row_Data));
-        data->rows[0]->image = strdup(PACKAGE_DATA_DIR"/ewl/images/e-logo.png");
+        data->rows[0]->image = ewl_test_image_copy_get("e-logo.png");
         data->rows[0]->text = strdup("The E logo");
 
         data->rows[1] = calloc(1, sizeof(List_Test_Row_Data));
-        data->rows[1]->image = strdup(PACKAGE_DATA_DIR"/ewl/images/entice.png");
+        data->rows[1]->image = ewl_test_image_copy_get("entice.png");
         data->rows[1]->text = strdup("The Entice image");
 
         data->rows[2] = calloc(1, sizeof(List_Test_Row_Data));
-        data->rows[2]->image = strdup(PACKAGE_DATA_DIR"/ewl/images/entrance.png");
+        data->rows[2]->image = ewl_test_image_copy_get("entrance.png");
         data->rows[2]->text = strdup("The Entrance image");
 
         data->count = 3;
@@ -159,23 +162,29 @@ list_test_data_setup(void)
 }
 
 static Ewl_Widget *
-list_test_cb_widget_fetch(void *data, unsigned int row __UNUSED__,
-                                        unsigned int col __UNUSED__,
-                                        void *pr_data __UNUSED__)
+list_test_cb_widget_fetch(unsigned int col __UNUSED__, void *pr_data __UNUSED__)
 {
         Ewl_Widget *w;
-        List_Test_Row_Data *d;
-
-        d = data;
 
         w = ewl_button_new();
-        ewl_button_label_set(EWL_BUTTON(w), d->text);
-        ewl_button_image_set(EWL_BUTTON(w), d->image, NULL);
         ewl_button_image_size_set(EWL_BUTTON(w), 24, 24);
-        ewl_widget_show(w);
 
         return w;
 }
+
+static void
+list_test_cb_widget_assign(Ewl_Widget *w, void *data,
+                                        unsigned int row __UNUSED__,
+                                        unsigned int col __UNUSED__,
+                                        void *pr_data __UNUSED__)
+{
+        List_Test_Row_Data *d;
+
+        d = data;
+        ewl_button_label_set(EWL_BUTTON(w), d->text);
+        ewl_button_image_set(EWL_BUTTON(w), d->image, NULL);
+}
+
 
 static void *
 list_test_data_fetch(void *data, unsigned int row,

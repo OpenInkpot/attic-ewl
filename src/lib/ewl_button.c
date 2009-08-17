@@ -9,8 +9,7 @@
 
 static const Ewl_Stock_Funcs const stock_funcs = {
         EWL_STOCK_LABEL_SET(ewl_button_label_set),
-        EWL_STOCK_IMAGE_SET(ewl_button_image_set),
-        NULL
+        EWL_STOCK_IMAGE_SET(ewl_button_image_set)
 };
 
 /**
@@ -68,7 +67,7 @@ ewl_button_init(Ewl_Button *b)
         ewl_container_child_append(EWL_CONTAINER(b), b->body);
         ewl_widget_appearance_set(b->body, "body");
         ewl_object_alignment_set(EWL_OBJECT(b->body), EWL_FLAG_ALIGN_CENTER);
-        ewl_object_fill_policy_set(EWL_OBJECT(b->body), EWL_FLAG_FILL_VFILL);
+        ewl_object_fill_policy_set(EWL_OBJECT(b->body), EWL_FLAG_FILL_ALL);
         ewl_widget_internal_set(b->body, TRUE);
         ewl_widget_show(b->body);
 
@@ -79,10 +78,6 @@ ewl_button_init(Ewl_Button *b)
 
         ewl_callback_append(w, EWL_CALLBACK_KEY_DOWN,
                                 ewl_button_cb_key_down, NULL);
-        ewl_callback_append(w, EWL_CALLBACK_FOCUS_IN,
-                                ewl_container_cb_widget_focus_in, NULL);
-        ewl_callback_append(w, EWL_CALLBACK_FOCUS_OUT,
-                                ewl_container_cb_widget_focus_out, NULL);
 
         DRETURN_INT(TRUE, DLEVEL_STABLE);
 }
@@ -118,7 +113,8 @@ ewl_button_label_set(Ewl_Button *b, const char *l)
                 b->label_object = ewl_label_new();
                 ewl_label_text_set(EWL_LABEL(b->label_object), l);
                 ewl_object_fill_policy_set(EWL_OBJECT(b->label_object),
-                                           EWL_FLAG_FILL_VFILL);
+                                                EWL_FLAG_FILL_HSHRINKABLE
+                                                | EWL_FLAG_FILL_HFILL);
                 ewl_container_child_append(EWL_CONTAINER(b), b->label_object);
                 ewl_widget_internal_set(b->label_object, TRUE);
                 ewl_widget_show(b->label_object);

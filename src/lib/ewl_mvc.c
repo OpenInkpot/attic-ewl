@@ -175,8 +175,11 @@ ewl_mvc_data_set(Ewl_MVC *mvc, void *data)
         mvc->data = data;
 
         /* new data, clear out the old selection list */
-        ewl_mvc_selected_clear(mvc);
-        ewl_mvc_dirty_set(mvc, TRUE);
+        if (mvc->model && mvc->view)
+        {
+		ewl_mvc_selected_clear(mvc);
+		ewl_mvc_dirty_set(mvc, TRUE);
+        }
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
 }
@@ -412,8 +415,8 @@ ewl_mvc_selected_clear_private(Ewl_MVC *mvc, Ewl_Selection *set)
                         {
                                 if (w != h)
                                 {
-                                        ewl_widget_state_set(w, "deselect",
-                                                        EWL_STATE_PERSISTENT);
+                                        ewl_widget_state_remove(w,
+                                                        EWL_STATE_SELECTED);
                                 }
                         }
                         ewl_mvc_selection_free(sel, FALSE);
@@ -573,6 +576,7 @@ ewl_mvc_selected_set(Ewl_MVC *mvc, const Ewl_Model *model, void *data,
 
         sel = ewl_mvc_selection_index_new(model, data, row, column);
         ewl_mvc_selected_clear_private(mvc, sel);
+        FREE(sel);
         ewl_mvc_selected_add(mvc, model, data, row, column);
 
         DLEAVE_FUNCTION(DLEVEL_STABLE);
@@ -1170,7 +1174,7 @@ ewl_mvc_selected_range_split(Ewl_MVC *mvc, Ewl_Selection_Range *range,
                         range->start.column + 1) +
                         (column - range->start.column);
         w = ecore_list_index_goto(EWL_SELECTION(range)->highlight, idx);
-        ewl_widget_state_set(w, "deselect", EWL_STATE_PERSISTENT);
+        ewl_widget_state_add(w, EWL_STATE_SELECTED);
 
         /* we have something above, case 1 */
         if (range->start.row < row)
@@ -1291,7 +1295,7 @@ ewl_mvc_highlight_do(Ewl_MVC *mvc __UNUSED__, Ewl_Container *c,
         DCHECK_TYPE(c, EWL_CONTAINER_TYPE);
         DCHECK_TYPE(w, EWL_WIDGET_TYPE);
 
-        ewl_widget_state_set(w, "selected", EWL_STATE_PERSISTENT);
+        ewl_widget_state_add(w, EWL_STATE_SELECTED);
         ewl_callback_prepend(w, EWL_CALLBACK_DESTROY,
                         ewl_mvc_cb_highlight_destroy, sel);
 
@@ -1529,8 +1533,8 @@ ewl_mvc_selection_free(Ewl_Selection *sel, unsigned int set_state)
                                         ewl_mvc_cb_highlight_destroy);
 
                         if (set_state)
-                                ewl_widget_state_set(sel->highlight,
-                                        "deselect",EWL_STATE_PERSISTENT);
+                                ewl_widget_state_remove(sel->highlight,
+                                        EWL_STATE_SELECTED);
                 }
                 else
                 {
@@ -1542,8 +1546,8 @@ ewl_mvc_selection_free(Ewl_Selection *sel, unsigned int set_state)
                                                 ewl_mvc_cb_highlight_destroy);
                                 
                                 if (set_state)
-                                        ewl_widget_state_set(w, "deselect",
-                                                EWL_STATE_PERSISTENT);
+                                        ewl_widget_state_remove(w, 
+                                                        EWL_STATE_SELECTED);
                         }
 
                         IF_FREE_LIST(sel->highlight);
