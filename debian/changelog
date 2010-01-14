@@ -1,3 +1,9 @@
+ewl (0.5.3.050-20090816-2) zelazny; urgency=low
+
+  * Rebuild due to EFL update
+
+ -- Mikhail Gusarov <dottedmag@dottedmag.net>  Thu, 14 Jan 2010 14:01:35 +0600
+
 ewl (0.5.3.050-20090816-1) asimov; urgency=low
 
   * SVN snapshot 20090816.
